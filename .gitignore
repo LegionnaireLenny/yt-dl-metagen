@@ -1,0 +1,25 @@
+*.pyc
+/Ripped Audio/
+/bin
+
+*.srt
+*.ttml
+*.sbv
+*.vtt
+*.flv
+*.mp4
+*.m4a
+*.m4v
+*.mp3
+*.3gp
+*.wav
+*.ape
+*.mkv
+*.swf
+*.part
+*.ytdl
+*.swp
+
+# Pycharm files
+.idea
+*.iml
