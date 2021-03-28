@@ -7,11 +7,11 @@ import re
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
-YOUTUBEDL_PATH = os.path.join(CURR_DIR, "../bin/youtube-dl.exe")
-FFMPEG_PATH = os.path.join(CURR_DIR, "../bin/ffmpeg.exe")
-FFPROBE_PATH = os.path.join(CURR_DIR, "../bin/ffprobe.exe")
+YOUTUBEDL_PATH = os.path.join(CURR_DIR, "..\\bin\\youtube-dl.exe")
+FFMPEG_PATH = os.path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
+FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 
-DOWNLOAD_DIR = "../Ripped Audio"
+DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
 
@@ -124,6 +124,7 @@ def rip_selected_videos(url, artist, album):
         filename = f"{item[1][1]}.ogg"
         filepath = os.path.join(download_dir, filename)
 
+        print(f"[Log] Original filename: {filename}")
         if artist != "":
             # pattern_open_paren = re.compile(r"\s*(\(|\[)")
             # pattern_no_close_paren = re.compile(r"[^()|\])]*")
@@ -134,23 +135,22 @@ def rip_selected_videos(url, artist, album):
             match_starting_artist = re.search(pattern_starting_artist, filename)
 
             if match_starting_artist is not None:
-                print(f"[Log] Removing artist name: {filename}")
                 # for group in match_starting_artist.groups():
                 #     print(group)
                 filename = re.sub(match_starting_artist.group(1), "", filename)
-                print(f"[Log] After artist name: {filename}")
+                print(f"[Log] After removing artist name: {filename}")
 
-        pattern_lyric_video = re.compile(r"(_Official|Lyric)(_Audio|_Music|_Lyric)?(_Video|Audio)")
+        pattern_lyric_video = re.compile(r"(_Official|_Lyric)(_Audio|_Music|_Lyric)?(_Video|_Audio)")
         # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
         match_lyric_video = re.search(pattern_lyric_video, filename)
 
         if match_lyric_video is not None:
-            print(f"[Log] Removing lyric video: {filename}")
             filename = filename.replace(match_lyric_video.group(), "")
-            print(f"[Log] After lyric removal: {filename}")
+            print(f"[Log] After removing video type: {filename}")
 
         original_filepath = filepath
         filename = filename.replace("_", " ")
+        print(f"[Log] After removing underscores: {filename}")
         filepath = os.path.join(download_dir, filename)
 
         try:
