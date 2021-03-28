@@ -1,4 +1,4 @@
-<font size = 6>Setting up yt-dl-metagen</font>
+# Setting up yt-dl-metagen
 
 1. Install Python 3.6 or later
    1. https://www.python.org/
@@ -30,7 +30,7 @@ yt-dl-metagen
     └── ripper.py
 </pre>
 
-<font size = 6>Running yt-dl-metagen</font>
+# Running yt-dl-metagen
 1. Enter the URL of a Youtube playlist
 
 1. Press "Fetch"
@@ -43,14 +43,16 @@ yt-dl-metagen
    1. The audio files will be downloaded to the _Ripped Audio\\\<artist>\\\<album>_ folder
    1. Audio files are automatically numbered consecutively based on their position in the playlist
    
-<font size = 6>Notes</font>
+# Notes
 
-- By default, audio files are extracted to the "Ripped Audio" folder in whichever folder you run main.py
+- Audio files are extracted to the "Ripped Audio" folder in the directory above main.py.
+  - Default: _yt-dl-metagen\\Ripped Audio_
 - If you enter an artist/album name, it'll extract the audio files to "Ripped Audio\\\<artist name>\\\<album name>
 - It tries to clean up the filenames a bit by removing the artist name (if provided) and stuff like (Official Video)
 - It will save the filename, artist, album, and tracknumber to the metadata
 - Tracks are numbered consecutively based on their position in the playlist. e.g. if you only download videos 1,2,4,6 the tracks will be numbered 1,2,3,4 respectively
 
-<font size = 6>Known Issues</font>
+# Known Issues
 
-- The program must be closed by closing the Python window, or pressing the exit button.
+- The program must be closed by closing the Python window, pressing Ctrl+C on CMD/Powershell, or pressing the exit button.
+- Regex for removing Official Video, et al. needs improving
