@@ -1,7 +1,9 @@
 # About
 *yt-dl-metagen* is a simple GUI wrapper for downloading and extracting audio from Youtube playlists using youtube-dl, with
 the option of automatically filling in additional metadata for the downloaded files. Currently, only the Ogg Vorbis (.ogg)
-format is supported. Other formats can be specified by manually editing *ripper.py* before running the program. 
+format is supported. Other formats can be specified by manually editing *ripper.py* before running the program.
+
+Only supported on Windows.
 
 # Setting up yt-dl-metagen
 
@@ -36,6 +38,9 @@ yt-dl-metagen
 </pre>
 
 # Running yt-dl-metagen
+1. Run _main.py_ using Python, CMD, or Powershell
+   1. Passing a playlist url as an argument will automatically fetch the list of videos
+
 1. Enter the URL of a Youtube playlist
 
 1. Press "Fetch"
@@ -60,4 +65,3 @@ yt-dl-metagen
 # Known Issues
 
 - The program must be closed by closing the Python window, pressing Ctrl+C on CMD/Powershell, or pressing the exit button.
-- Regex for removing Official Video, et al. needs improving
