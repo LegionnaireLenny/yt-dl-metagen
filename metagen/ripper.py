@@ -57,6 +57,12 @@ def set_video_selected(index, is_selected):
     videos[index] = (is_selected, get_title(index))
 
 
+def clear_videos():
+    global videos
+    videos = {}
+    print("[Log] Video list cleared")
+
+
 def get_selected_videos():
     selected_videos = {}
 
@@ -165,4 +171,5 @@ def rip_selected_videos(url, artist, album):
 
         track_number += 1
 
+    clear_videos()
     print("[Log] Ripping complete")

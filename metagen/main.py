@@ -15,30 +15,25 @@ if len(sys.argv) > 1:
     _playlist_url = sys.argv[1]
 else:
     _playlist_url = ""
-    # _playlist_url = "https://www.youtube.com/playlist?list=OLAK5uy_k0OLmSoKa-MJ5-K5rv6Yxn4QFnPO3hhuA"
 
+_cached_url = ""
 _artist = ""
 _album = ""
 _exit = False
 
 
 def start_ripping(self):
-    return ripper.rip_selected_videos(_playlist_url, _artist, _album)
+    ripper.rip_selected_videos(_cached_url, _artist, _album)
 
 
-def get_playlist_url():
-    global _playlist_url
-    return _playlist_url
+def set_cached_url(url):
+    global _cached_url
+    _cached_url = url
 
 
-def set_url(url):
+def set_playlist_url(url):
     global _playlist_url
     _playlist_url = url
-
-
-def get_artist():
-    global _artist
-    return _artist
 
 
 def set_artist(artist):
@@ -46,19 +41,9 @@ def set_artist(artist):
     _artist = artist
 
 
-def get_album():
-    global _album
-    return _album
-
-
 def set_album(album):
     global _album
     _album = album
-
-
-def get_exit_status():
-    global _exit
-    return _exit
 
 
 def set_exit_status(exit_status):
@@ -76,17 +61,18 @@ class UrlInput(BoxLayout):
         self.button = Button(text="Fetch", size_hint=(None, 1), size=(60, self.height))
         self.button.bind(on_press=self.retrieve_playlist)
 
-        self.input = TextInput(text=get_playlist_url(), hint_text="Enter playlist URL here", multiline=False, write_tab=False)
+        self.input = TextInput(text=_playlist_url, hint_text="Enter playlist URL here", multiline=False, write_tab=False)
         self.input.bind(text=self.on_text)
 
         self.add_widget(self.button)
         self.add_widget(self.input)
 
     def retrieve_playlist(self, instance):
+        set_cached_url(_playlist_url)
         scraper.stop()
 
     def on_text(self, instance, value):
-        set_url(value)
+        set_playlist_url(value)
         instance.background_color = (0.7, 0.7, 0.7, 0.7)
 
 
@@ -97,7 +83,7 @@ class ArtistInput(BoxLayout):
         self.size_hint = (1, None)
         self.size = (self.width, 30)
 
-        self.input = TextInput(text=get_artist(), hint_text="Enter artist name here", multiline=False, write_tab=False)
+        self.input = TextInput(text=_artist, hint_text="Enter artist name here", multiline=False, write_tab=False)
         self.input.bind(text=self.on_text)
         self.add_widget(self.input)
 
@@ -112,7 +98,7 @@ class AlbumInput(BoxLayout):
         self.size_hint = (1, None)
         self.size = (self.width, 30)
 
-        self.input = TextInput(text=get_album(), hint_text="Enter album name here", multiline=False, write_tab=False)
+        self.input = TextInput(text=_album, hint_text="Enter album name here", multiline=False, write_tab=False)
         self.input.bind(text=self.on_text)
         self.add_widget(self.input)
 
@@ -133,7 +119,7 @@ class VideoListItem(BoxLayout):
 
         ripper.add_video(self.index, label_text, self.checkbox.active)
 
-        self.label = Label(text=label_text.replace("_", " "))
+        self.label = Label(text=f"{self.index}. {label_text.replace('_', ' ')}")
         # self.label = Label(text=label_text, size_hint=(0.9, 1), text_size=self.size, halign="left")
 
         self.add_widget(self.checkbox)
@@ -148,8 +134,8 @@ class VideoListApp(App):
         main_box = BoxLayout(orientation="vertical")
         main_box.add_widget(UrlInput())
 
-        if get_playlist_url() != "":
-            playlist_info = ripper.get_playlist_info(get_playlist_url())
+        if _playlist_url != "":
+            playlist_info = ripper.get_playlist_info(_playlist_url)
 
             if len(playlist_info[0]) > 0:
                 list_scroll = ScrollView()
