@@ -135,9 +135,10 @@ def rip_selected_videos(url, artist, album):
             # pattern_open_paren = re.compile(r"\s*(\(|\[)")
             # pattern_no_close_paren = re.compile(r"[^()|\])]*")
             # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^()|\])]*(Video|Audio|Lyric|Official)[^()|\])]*(\)|]))")
+            # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
+
             temp_artist = artist.replace(" ", "_")
             pattern_starting_artist = re.compile(fr"(^[^-]*({temp_artist})[^-]*(-_*|_x_))")
-            # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
             match_starting_artist = re.search(pattern_starting_artist, filename)
 
             if match_starting_artist is not None:

@@ -69,11 +69,17 @@ class UrlInput(BoxLayout):
 
     def retrieve_playlist(self, instance):
         set_cached_url(_playlist_url)
-        scraper.stop()
+        downloader.root.load_playlist()
 
     def on_text(self, instance, value):
         set_playlist_url(value)
         instance.background_color = (0.7, 0.7, 0.7, 0.7)
+
+# TODO
+# Convert these two to generic MetadataInput
+# MetadataInput needs dropdown box with supported metadata fields
+# convert set_x() to generic set_metadata() input that takes enum metadata
+# and sets based on enum received
 
 
 class ArtistInput(BoxLayout):
@@ -106,7 +112,7 @@ class AlbumInput(BoxLayout):
         set_album(value)
 
 
-class VideoListItem(BoxLayout):
+class ItemSelector(BoxLayout):
     def __init__(self, index, label_text):
         super().__init__()
 
@@ -116,67 +122,78 @@ class VideoListItem(BoxLayout):
 
         self.checkbox = CheckBox(active=True, size_hint=(None, 1), size=(60, self.height))
         self.checkbox.bind(active=self.on_checkbox_active)
-
-        ripper.add_video(self.index, label_text, self.checkbox.active)
+        self.add_widget(self.checkbox)
 
         self.label = Label(text=f"{self.index}. {label_text.replace('_', ' ')}")
         # self.label = Label(text=label_text, size_hint=(0.9, 1), text_size=self.size, halign="left")
-
-        self.add_widget(self.checkbox)
         self.add_widget(self.label)
+
+        ripper.add_video(self.index, label_text, self.checkbox.active)
 
     def on_checkbox_active(self, checkbox, value):
         ripper.set_video_selected(index=self.index, is_selected=value)
 
 
-class VideoListApp(App):
-    def build(self):
-        main_box = BoxLayout(orientation="vertical")
-        main_box.add_widget(UrlInput())
+class ScrollStack(ScrollView):
+    def __init__(self):
+        super().__init__()
 
+        self.list_stack = StackLayout(size_hint=(1, None))
+        self.add_widget(self.list_stack)
+
+    def add_to_list(self, item):
+        self.list_stack.add_widget(item)
+
+    def clear_list(self):
+        self.list_stack.clear_widgets()
+
+
+class MainGui(BoxLayout):
+    def __init__(self):
+        super().__init__()
+
+        self.orientation = "vertical"
+        self.add_widget(UrlInput())
+
+        self.video_list = ScrollStack()
+
+        self.add_widget(self.video_list)
+
+        self.load_playlist()
+
+        self.add_widget(ArtistInput())
+        self.add_widget(AlbumInput())
+
+        self.rip_button = Button(text="Rip playlist", size_hint=(1, None), size=(self.width, 50))
+        self.rip_button.bind(on_press=start_ripping)
+        self.add_widget(self.rip_button)
+
+    def load_playlist(self):
         if _playlist_url != "":
+            self.video_list.clear_list()
+
             playlist_info = ripper.get_playlist_info(_playlist_url)
+            set_cached_url(_playlist_url)
 
             if len(playlist_info[0]) > 0:
-                list_scroll = ScrollView()
-                list_stack = StackLayout()
-
                 playlist = playlist_info[0]
                 set_album(playlist_info[1])
 
                 index = 1
                 for item_name in playlist:
-                    list_stack.add_widget(VideoListItem(index, item_name))
+                    self.video_list.add_to_list(ItemSelector(index, item_name))
                     index += 1
-
-                list_scroll.add_widget(list_stack)
-                main_box.add_widget(list_scroll)
-
-                artist_input = ArtistInput()
-                album_input = AlbumInput()
-
-                main_box.add_widget(artist_input)
-                main_box.add_widget(album_input)
-
-                rip_button = Button(text="Rip playlist", size_hint=(1, None), size=(main_box.width, 50))
-                rip_button.bind(on_press=start_ripping)
-
-                exit_button = Button(text="Exit", size_hint=(0.2, None), size=(main_box.width, 30))
-                exit_button.bind(on_press=self.exit_program)
-
-                main_box.add_widget(rip_button)
-                main_box.add_widget(exit_button)
             else:
                 print("[Error] Invalid playlist information returned")
+        else:
+            print("[Warning] No playlist entered")
 
-        return main_box
 
-    def exit_program(self, button):
-        set_exit_status(True)
-        scraper.stop()
+class MetagenApp(App):
+    def build(self):
+        return MainGui()
 
 
 if __name__ == '__main__':
-    while not _exit:
-        scraper = VideoListApp()
-        scraper.run()
+    downloader = MetagenApp()
+    downloader.run()
