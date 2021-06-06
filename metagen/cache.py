@@ -4,7 +4,7 @@ from enum import Enum
 class VorbisComments(Enum):
     ARTIST = "artist"
     ALBUM = "album"
-    RECORD_LABEL = "organization"
+    # RECORD_LABEL = "organization"
     GENRE = "genre"
 
 
@@ -14,8 +14,7 @@ class MetadataCache:
 
         self._playlist_url = ""
         self._cached_url = ""
-        self._artist = ""
-        self._album = ""
+        self._metadata = {}
 
     def get_playlist_url(self):
         return self._playlist_url
@@ -29,17 +28,25 @@ class MetadataCache:
     def set_cached_url(self, url):
         self._cached_url = url
 
-    def get_album(self):
-        return self._album
+    def add_metadata(self, tag, value):
+        if value != "":
+            self._metadata[tag] = value
+        else:
+            print(f"[Error] Blank value provided for \"{tag}\"")
 
-    def set_album(self, album):
-        self._album = album
+    def get_metadata(self):
+        return self._metadata
 
-    def get_artist(self):
-        return self._artist
+    def get_tag(self, tag):
+        if tag in self._metadata:
+            return self._metadata[tag]
+        else:
+            print("[Error] Tag not found")
+            return
 
-    def set_artist(self, artist):
-        self._artist = artist
+    def clear_metadata(self):
+        self._metadata.clear()
+        print("[Log] Metadata cleared")
 
 
 class PlaylistDictionary(dict):

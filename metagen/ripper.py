@@ -36,6 +36,7 @@ def get_playlist_info(playlist_url):
     raw_playlist = raw_playlist.splitlines()
 
     playlist = []
+    playlist_title = ""
     if len(raw_playlist) > 0:
         json_info = raw_playlist.pop(len(raw_playlist) - 1)
 
@@ -47,16 +48,13 @@ def get_playlist_info(playlist_url):
             playlist_title = json_dump['title']
         except json.decoder.JSONDecodeError:
             print("[Error] Invalid json obtained from playlist page.")
-            playlist_title = ""
     else:
-        playlist = []
-        playlist_title = ""
         print("[Error] Playlist is empty")
 
     return playlist, playlist_title
 
 
-def rip_selected_videos(url, video_list, artist, album):
+def rip_selected_videos(url, video_list, artist, album, vorbis_comments):
     print(f"[Log] Url: {url}\n"
           f"[Log] Artist: {artist}\n"
           f"[Log] Album: {album}")
@@ -121,7 +119,7 @@ def rip_selected_videos(url, video_list, artist, album):
             print(f"[Error] Could not replace file: {original_filepath}")
 
         if os.path.isfile(filepath):
-            metagen.add_vorbis_metadata(filepath, artist, filename[:-4], album, str(track_number))
+            metagen.add_vorbis_metadata(filepath, filename[:-4], str(track_number), vorbis_comments)
         else:
             print(f"[Error] Path is not file: {filepath}")
 
