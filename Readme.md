@@ -61,7 +61,3 @@ yt-dl-metagen
 - It tries to clean up the filenames a bit by removing the artist name (if provided) and stuff like (Official Video)
 - It will save the filename, artist, album, and tracknumber to the metadata
 - Tracks are numbered consecutively based on their position in the playlist. e.g. if you only download videos 1,2,4,6 the tracks will be numbered 1,2,3,4 respectively
-
-# Known Issues
-
-- The program must be closed by closing the Python window, pressing Ctrl+C on CMD/Powershell, or pressing the exit button.

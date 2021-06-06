@@ -1,6 +1,7 @@
 import sys
 
 import ripper
+import cache
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -11,44 +12,12 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
 
 
-if len(sys.argv) > 1:
-    _playlist_url = sys.argv[1]
-else:
-    _playlist_url = ""
-
-_cached_url = ""
-_artist = ""
-_album = ""
-_exit = False
-
-
 def start_ripping(self):
-    ripper.rip_selected_videos(_cached_url, _artist, _album)
-
-
-def set_cached_url(url):
-    global _cached_url
-    _cached_url = url
-
-
-def set_playlist_url(url):
-    global _playlist_url
-    _playlist_url = url
-
-
-def set_artist(artist):
-    global _artist
-    _artist = artist
-
-
-def set_album(album):
-    global _album
-    _album = album
-
-
-def set_exit_status(exit_status):
-    global _exit
-    _exit = exit_status
+    ripper.rip_selected_videos(metadata.get_cached_url(),
+                               playlist_dictionary.get_selected_videos(),
+                               metadata.get_artist(),
+                               metadata.get_album())
+    playlist_dictionary.clear()
 
 
 class UrlInput(BoxLayout):
@@ -61,18 +30,21 @@ class UrlInput(BoxLayout):
         self.button = Button(text="Fetch", size_hint=(None, 1), size=(60, self.height))
         self.button.bind(on_press=self.retrieve_playlist)
 
-        self.input = TextInput(text=_playlist_url, hint_text="Enter playlist URL here", multiline=False, write_tab=False)
+        self.input = TextInput(text=metadata.get_playlist_url(),
+                               hint_text="Enter playlist URL here",
+                               multiline=False,
+                               write_tab=False)
         self.input.bind(text=self.on_text)
 
         self.add_widget(self.button)
         self.add_widget(self.input)
 
     def retrieve_playlist(self, instance):
-        set_cached_url(_playlist_url)
+        metadata.set_cached_url(metadata.get_playlist_url())
         downloader.root.load_playlist()
 
     def on_text(self, instance, value):
-        set_playlist_url(value)
+        metadata.set_playlist_url(value)
         instance.background_color = (0.7, 0.7, 0.7, 0.7)
 
 # TODO
@@ -89,12 +61,15 @@ class ArtistInput(BoxLayout):
         self.size_hint = (1, None)
         self.size = (self.width, 30)
 
-        self.input = TextInput(text=_artist, hint_text="Enter artist name here", multiline=False, write_tab=False)
+        self.input = TextInput(text=metadata.get_artist(),
+                               hint_text="Enter artist name here",
+                               multiline=False,
+                               write_tab=False)
         self.input.bind(text=self.on_text)
         self.add_widget(self.input)
 
     def on_text(self, instance, value):
-        set_artist(value)
+        metadata.set_artist(value)
 
 
 class AlbumInput(BoxLayout):
@@ -104,12 +79,33 @@ class AlbumInput(BoxLayout):
         self.size_hint = (1, None)
         self.size = (self.width, 30)
 
-        self.input = TextInput(text=_album, hint_text="Enter album name here", multiline=False, write_tab=False)
+        self.input = TextInput(text=metadata.get_album(),
+                               hint_text="Enter album name here",
+                               multiline=False,
+                               write_tab=False)
         self.input.bind(text=self.on_text)
         self.add_widget(self.input)
 
     def on_text(self, instance, value):
-        set_album(value)
+        metadata.set_album(value)
+
+
+class MetadataInput(BoxLayout):
+    def __init__(self):
+        super().__init__()
+
+        self.size_hint = (1, None)
+        self.size = (self.width, 30)
+
+        self.input = TextInput(text=metadata.get_album(),
+                               hint_text="Enter album name here",
+                               multiline=False,
+                               write_tab=False)
+        self.input.bind(text=self.on_text)
+        self.add_widget(self.input)
+
+    def on_text(self, instance, value):
+        metadata.set_album(value)
 
 
 class ItemSelector(BoxLayout):
@@ -128,10 +124,10 @@ class ItemSelector(BoxLayout):
         # self.label = Label(text=label_text, size_hint=(0.9, 1), text_size=self.size, halign="left")
         self.add_widget(self.label)
 
-        ripper.add_video(self.index, label_text, self.checkbox.active)
+        playlist_dictionary.add_video(self.index, label_text, self.checkbox.active)
 
     def on_checkbox_active(self, checkbox, value):
-        ripper.set_video_selected(index=self.index, is_selected=value)
+        playlist_dictionary.set_selected(index=self.index, is_selected=value)
 
 
 class ScrollStack(ScrollView):
@@ -169,20 +165,22 @@ class MainGui(BoxLayout):
         self.add_widget(self.rip_button)
 
     def load_playlist(self):
-        if _playlist_url != "":
+        if metadata.get_playlist_url() != "":
             self.video_list.clear_list()
+            playlist_dictionary.clear()
 
-            playlist_info = ripper.get_playlist_info(_playlist_url)
-            set_cached_url(_playlist_url)
+            playlist_info = ripper.get_playlist_info(metadata.get_playlist_url())
 
             if len(playlist_info[0]) > 0:
                 playlist = playlist_info[0]
-                set_album(playlist_info[1])
+                metadata.set_album(playlist_info[1])
 
                 index = 1
                 for item_name in playlist:
                     self.video_list.add_to_list(ItemSelector(index, item_name))
                     index += 1
+
+                # metadata.set_cached_url(metadata.get_playlist_url())
             else:
                 print("[Error] Invalid playlist information returned")
         else:
@@ -195,5 +193,15 @@ class MetagenApp(App):
 
 
 if __name__ == '__main__':
+    playlist_dictionary = cache.PlaylistDictionary()
+    metadata = cache.MetadataCache()
+
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
+    else:
+        url = ""
+
+    metadata.set_playlist_url(url)
+
     downloader = MetagenApp()
     downloader.run()

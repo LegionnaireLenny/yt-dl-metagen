@@ -15,10 +15,6 @@ DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
 
-videos = {}
-IS_SELECTED_INDEX = 0
-TITLE_INDEX = 1
-
 
 def convert_invalid_characters(string):
     double_quotes = "\""
@@ -31,46 +27,6 @@ def convert_invalid_characters(string):
     string = re.sub(invalid_filename_chars, "-", string)
 
     return string
-
-
-def get_videos():
-    return videos
-
-
-def get_video(index):
-    return videos[index]
-
-
-def get_title(index):
-    return videos[index][TITLE_INDEX]
-
-
-def add_video(index, title, is_selected=True):
-    videos[index] = (is_selected, title)
-
-
-def is_video_selected(index):
-    return videos[index][IS_SELECTED_INDEX]
-
-
-def set_video_selected(index, is_selected):
-    videos[index] = (is_selected, get_title(index))
-
-
-def clear_videos():
-    global videos
-    videos = {}
-    print("[Log] Video list cleared")
-
-
-def get_selected_videos():
-    selected_videos = {}
-
-    for index in range(1, len(get_videos()) + 1):
-        if is_video_selected(index):
-            selected_videos[index] = get_video(index)
-
-    return selected_videos
 
 
 def get_playlist_info(playlist_url):
@@ -100,13 +56,12 @@ def get_playlist_info(playlist_url):
     return playlist, playlist_title
 
 
-def rip_selected_videos(url, artist, album):
+def rip_selected_videos(url, video_list, artist, album):
     print(f"[Log] Url: {url}\n"
           f"[Log] Artist: {artist}\n"
           f"[Log] Album: {album}")
 
     playlist_items = "--playlist-items "
-    video_list = get_selected_videos()
 
     artist = convert_invalid_characters(artist)
     album = convert_invalid_characters(album)
@@ -171,6 +126,4 @@ def rip_selected_videos(url, artist, album):
             print(f"[Error] Path is not file: {filepath}")
 
         track_number += 1
-
-    clear_videos()
     print("[Log] Ripping complete")
