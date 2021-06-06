@@ -1,5 +1,6 @@
 import os
 import json
+import cache
 import metagen
 import subprocess
 import re
@@ -54,15 +55,29 @@ def get_playlist_info(playlist_url):
     return playlist, playlist_title
 
 
-def rip_selected_videos(url, video_list, artist, album, vorbis_comments):
-    print(f"[Log] Url: {url}\n"
-          f"[Log] Artist: {artist}\n"
-          f"[Log] Album: {album}")
+def rip_selected_videos(url, video_list, vorbis_comments):
+    # def rip_selected_videos(url, video_list, artist, album, vorbis_comments):
+    log = f"[Log] url: {url}\n"
+
+    artist = ""
+    album = ""
+    for comment in vorbis_comments:
+        log += f"[Log] {comment}: {vorbis_comments[comment]}\n"
+
+        if comment == cache.VorbisComments.ARTIST.value:
+            artist = convert_invalid_characters(vorbis_comments[comment])
+        if comment == cache.VorbisComments.ALBUM.value:
+            album = convert_invalid_characters(vorbis_comments[comment])
+    # print(f"[Log] Url: {url}\n"
+    #       f"[Log] Artist: {artist}\n"
+    #       f"[Log] Album: {album}")
+
+    print(log)
 
     playlist_items = "--playlist-items "
 
-    artist = convert_invalid_characters(artist)
-    album = convert_invalid_characters(album)
+    # artist = convert_invalid_characters(artist)
+    # album = convert_invalid_characters(album)
 
     print("[Log] Pending Playlist")
     for item in video_list.items():
@@ -71,7 +86,13 @@ def rip_selected_videos(url, video_list, artist, album, vorbis_comments):
 
     playlist_items = playlist_items[:-1]
 
-    download_dir = f"{DOWNLOAD_DIR}\\{artist}\\{album}\\"
+    # download_dir = f"{DOWNLOAD_DIR}\\{artist}\\{album}\\"
+    download_dir = f"{DOWNLOAD_DIR}\\"
+    if artist != "":
+        download_dir += f"{artist}\\"
+    if album != "":
+        download_dir += f"{album}\\"
+
     output_template = f"-o \"{download_dir}%(title)s.%(ext)s\""
     command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {FILENAME_ARGS} {output_template} {url}"
     print(f"[Log] {command}")

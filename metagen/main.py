@@ -16,8 +16,8 @@ def start_ripping(self):
     if metadata.get_cached_url() != "":
         ripper.rip_selected_videos(metadata.get_cached_url(),
                                    playlist_dictionary.get_selected_videos(),
-                                   metadata.get_tag(cache.VorbisComments.ARTIST.value),
-                                   metadata.get_tag(cache.VorbisComments.ALBUM.value),
+                                   # metadata.get_tag(cache.VorbisComments.ARTIST.value),
+                                   # metadata.get_tag(cache.VorbisComments.ALBUM.value),
                                    metadata.get_metadata())
         playlist_dictionary.clear()
         metadata.clear_metadata()
