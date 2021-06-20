@@ -19,6 +19,7 @@ OPTIONS = "--abort-on-error"
 
 CLEAR_ON_FAILED_DOWNLOAD = True
 
+
 def convert_invalid_characters(string):
     double_quotes = "\""
     question_mark = r"\?"

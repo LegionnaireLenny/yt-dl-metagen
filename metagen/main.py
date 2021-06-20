@@ -53,6 +53,9 @@ class UrlInput(BoxLayout):
 
 class MetadataInput(BoxLayout):
     def __init__(self, metadata_tag):
+        """
+        :param metadata_tag (enum):
+        """
         super().__init__()
 
         self.size_hint = (1, None)
@@ -82,6 +85,9 @@ class MetadataInput(BoxLayout):
 
     def set_tag(self, instance):
         self.tag = metanums.VorbisComments[instance]
+
+    def set_text(self, text):
+        self.input.text = text
 
     def on_text(self, instance, value):
         downloader.root.get_cache().metadata.add_metadata(self.tag.value, value)
@@ -134,19 +140,16 @@ class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
 
-        self.cache = cache.Cache()
-
         self.orientation = "vertical"
-        self.add_widget(UrlInput())
-
+        self.cache = cache.Cache()
         self.video_list = ScrollStack()
 
+        self.add_widget(UrlInput())
         self.add_widget(self.video_list)
 
         self.load_playlist()
 
         self.metadata_input = MetadataStack()
-
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ARTIST))
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ALBUM))
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.GENRE))
@@ -171,6 +174,10 @@ class MainGui(BoxLayout):
             if len(playlist_info[0]) > 0:
                 playlist = playlist_info[0]
                 self.cache.metadata.add_metadata(metanums.VorbisComments.ALBUM.value, playlist_info[1])
+
+                for child in self.metadata_input.children:
+                    if child.tag == metanums.VorbisComments.ALBUM:
+                        child.input.text = playlist_info[1]
 
                 index = 1
                 for item_name in playlist:
