@@ -1,20 +1,13 @@
-from enum import Enum
-
-
-class VorbisComments(Enum):
-    ARTIST = "artist"
-    ALBUM = "album"
-    # RECORD_LABEL = "organization"
-    GENRE = "genre"
-
-
-class MetadataCache:
-    def __init__(self):
+class Cache:
+    def __init__(self, url=""):
         super().__init__()
 
-        self._playlist_url = ""
+        self._playlist_url = url
         self._cached_url = ""
-        self._metadata = {}
+        self._ripped = False
+
+        self.metadata = self.Metadata()
+        self.playlist = self.Playlist()
 
     def get_playlist_url(self):
         return self._playlist_url
@@ -28,56 +21,86 @@ class MetadataCache:
     def set_cached_url(self, url):
         self._cached_url = url
 
-    def add_metadata(self, tag, value):
-        if value != "":
-            self._metadata[tag] = value
-        else:
-            print(f"[Error] Blank value provided for \"{tag}\"")
+    def get_ripped(self):
+        return self._ripped
 
-    def get_metadata(self):
-        return self._metadata
+    def set_ripped(self, is_ripped):
+        self._ripped = is_ripped
 
-    def get_tag(self, tag):
-        if tag in self._metadata:
-            return self._metadata[tag]
-        else:
-            print("[Error] Tag not found")
-            return
+    class Metadata(dict):
+        """
+        Used to store metadata related to a playlist.
 
-    def clear_metadata(self):
-        self._metadata.clear()
-        print("[Log] Metadata cleared")
+        Attributes:
+            self.Key (string): the string representation of a metadata tag, e.g. "artist", "album", etc.
+            self.Value (string): the  value of a tag
 
+            Example - {["artist","My Favorite Artist"],["album", "My Favorite Album"]}
+        """
+        def __init__(self):
+            super().__init__()
 
-class PlaylistDictionary(dict):
-    def __init__(self):
-        super().__init__()
+        def add_metadata(self, tag, value):
+            if value != "":
+                self[tag] = value
+            else:
+                print(f"[Error] Blank value provided for \"{tag}\"")
 
-        self.IS_SELECTED_INDEX = 0
-        self.TITLE_INDEX = 1
+        def get_metadata(self):
+            return self
 
-    def add_video(self, index, title, is_selected=True):
-        self[index] = (is_selected, title)
+        def get_tag(self, tag):
+            if tag in self:
+                return self[tag]
+            else:
+                print("[Error] Tag not found")
+                return
 
-    def get_title(self, index):
-        return self[index][self.TITLE_INDEX]
+        def clear(self):
+            super().clear()
+            print("[Log] Metadata cleared")
 
-    def is_selected(self, index):
-        return self[index][self.IS_SELECTED_INDEX]
+    class Playlist(dict):
+        """
+        Used to track which items in a playlist have been selected
 
-    def set_selected(self, index, is_selected):
-        self[index] = (is_selected, self.get_title(index))
+        Attributes:
+            self.Key (int): represents an item's position in a playlist
+            self.Value (boolean, string):
+              boolean - indicates whether an item has been selected by user
+              string - title of the item selected
 
-    def get_selected_videos(self):
-        selected_videos = {}
+            IS_SELECTED_INDEX (int): position of the boolean in the value tuple
+            TITLE_INDEX (int): position of the title in the value tuple
+        """
+        def __init__(self):
+            super().__init__()
 
-        for index in range(1, len(self) + 1):
-            if self.is_selected(index):
-                selected_videos[index] = self[index]
+            self.IS_SELECTED_INDEX = 0
+            self.TITLE_INDEX = 1
 
-        return selected_videos
+        def add_video(self, index, title, is_selected=True):
+            self[index] = (is_selected, title)
 
-    def clear(self):
-        super().clear()
-        print("[Log] Video list cleared")
+        def get_title(self, index):
+            return self[index][self.TITLE_INDEX]
+
+        def is_selected(self, index):
+            return self[index][self.IS_SELECTED_INDEX]
+
+        def set_selected(self, index, is_selected):
+            self[index] = (is_selected, self.get_title(index))
+
+        def get_selected_videos(self):
+            selected_videos = {}
+
+            for index in range(1, len(self) + 1):
+                if self.is_selected(index):
+                    selected_videos[index] = self[index]
+
+            return selected_videos
+
+        def clear(self):
+            super().clear()
+            print("[Log] Video list cleared")
 

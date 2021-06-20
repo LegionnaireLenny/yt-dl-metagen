@@ -1,6 +1,6 @@
 import os
 import json
-import cache
+import metanums
 import metagen
 import subprocess
 import re
@@ -15,7 +15,9 @@ FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
+OPTIONS = "--abort-on-error"
 
+CLEAR_ON_FAILED_DOWNLOAD = True
 
 def convert_invalid_characters(string):
     double_quotes = "\""
@@ -56,7 +58,6 @@ def get_playlist_info(playlist_url):
 
 
 def rip_selected_videos(url, video_list, vorbis_comments):
-    # def rip_selected_videos(url, video_list, artist, album, vorbis_comments):
     log = f"[Log] url: {url}\n"
 
     artist = ""
@@ -64,20 +65,14 @@ def rip_selected_videos(url, video_list, vorbis_comments):
     for comment in vorbis_comments:
         log += f"[Log] {comment}: {vorbis_comments[comment]}\n"
 
-        if comment == cache.VorbisComments.ARTIST.value:
+        if comment == metanums.VorbisComments.ARTIST.value:
             artist = convert_invalid_characters(vorbis_comments[comment])
-        if comment == cache.VorbisComments.ALBUM.value:
+        if comment == metanums.VorbisComments.ALBUM.value:
             album = convert_invalid_characters(vorbis_comments[comment])
-    # print(f"[Log] Url: {url}\n"
-    #       f"[Log] Artist: {artist}\n"
-    #       f"[Log] Album: {album}")
 
     print(log)
 
     playlist_items = "--playlist-items "
-
-    # artist = convert_invalid_characters(artist)
-    # album = convert_invalid_characters(album)
 
     print("[Log] Pending Playlist")
     for item in video_list.items():
@@ -86,7 +81,6 @@ def rip_selected_videos(url, video_list, vorbis_comments):
 
     playlist_items = playlist_items[:-1]
 
-    # download_dir = f"{DOWNLOAD_DIR}\\{artist}\\{album}\\"
     download_dir = f"{DOWNLOAD_DIR}\\"
     if artist != "":
         download_dir += f"{artist}\\"
@@ -94,10 +88,22 @@ def rip_selected_videos(url, video_list, vorbis_comments):
         download_dir += f"{album}\\"
 
     output_template = f"-o \"{download_dir}%(title)s.%(ext)s\""
-    command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {FILENAME_ARGS} {output_template} {url}"
+    command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {FILENAME_ARGS} {OPTIONS} {output_template} {url}"
     print(f"[Log] {command}")
 
-    subprocess.run(command)
+    result = subprocess.run(command, stderr=subprocess.PIPE).stderr.decode("unicode_escape")
+
+    if result != "":
+        print(f"[Error] Download failed. {result}\n[Error] Aborting.")
+
+        if CLEAR_ON_FAILED_DOWNLOAD:
+            print("[Debug] Removing downloaded files")
+            for root, dirs, files in os.walk(download_dir):
+                for file in files:
+                    r_path = os.path.join(root, file)
+                    print(f"[Debug] Removing {r_path}")
+                    os.remove(r_path)
+        return
 
     track_number = 1
     for item in video_list.items():

@@ -1,6 +1,7 @@
 import sys
-import ripper
 import cache
+import metanums
+import ripper
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -13,14 +14,14 @@ from kivy.uix.textinput import TextInput
 
 
 def start_ripping(self):
-    if metadata.get_cached_url() != "":
-        ripper.rip_selected_videos(metadata.get_cached_url(),
-                                   playlist_dictionary.get_selected_videos(),
+    if downloader.root.get_cache().get_cached_url() != "":
+        ripper.rip_selected_videos(downloader.root.get_cache().get_cached_url(),
+                                   downloader.root.get_cache().playlist.get_selected_videos(),
                                    # metadata.get_tag(cache.VorbisComments.ARTIST.value),
                                    # metadata.get_tag(cache.VorbisComments.ALBUM.value),
-                                   metadata.get_metadata())
-        playlist_dictionary.clear()
-        metadata.clear_metadata()
+                                   downloader.root.get_cache().metadata.get_metadata())
+        downloader.root.get_cache().set_ripped(True)
+        # downloader.root.get_cache().metadata.clear_metadata()
     else:
         print("[Error] No playlist entered")
 
@@ -36,8 +37,7 @@ class UrlInput(BoxLayout):
         self.button.bind(on_press=self.fetch_playlist)
         self.add_widget(self.button)
 
-        self.input = TextInput(text=metadata.get_playlist_url(),
-                               hint_text="Enter playlist URL here",
+        self.input = TextInput(hint_text="Enter playlist URL here",
                                multiline=False,
                                write_tab=False)
         self.input.bind(text=self.on_text)
@@ -47,7 +47,7 @@ class UrlInput(BoxLayout):
         downloader.root.load_playlist()
 
     def on_text(self, instance, value):
-        metadata.set_playlist_url(value)
+        downloader.root.get_cache().set_playlist_url(value)
         instance.background_color = (0.7, 0.7, 0.7, 0.7)
 
 
@@ -60,7 +60,7 @@ class MetadataInput(BoxLayout):
         self.tag = metadata_tag
 
         self.dropdown = DropDown()
-        for comment in cache.VorbisComments:
+        for comment in metanums.VorbisComments:
             drop_button = Button(text=comment.name, size_hint=(1, None), height=self.height)
             drop_button.bind(on_release=lambda drop_button: self.dropdown.select(drop_button.text))
 
@@ -81,10 +81,10 @@ class MetadataInput(BoxLayout):
         self.add_widget(self.input)
 
     def set_tag(self, instance):
-        self.tag = cache.VorbisComments[instance]
+        self.tag = metanums.VorbisComments[instance]
 
     def on_text(self, instance, value):
-        metadata.add_metadata(self.tag.value, value)
+        downloader.root.get_cache().metadata.add_metadata(self.tag.value, value)
 
 
 class ItemSelector(BoxLayout):
@@ -103,10 +103,10 @@ class ItemSelector(BoxLayout):
         # self.label = Label(text=label_text, size_hint=(0.9, 1), text_size=self.size, halign="left")
         self.add_widget(self.label)
 
-        playlist_dictionary.add_video(self.index, label_text, self.checkbox.active)
+        downloader.root.get_cache().playlist.add_video(self.index, label_text, self.checkbox.active)
 
     def on_checkbox_active(self, checkbox, value):
-        playlist_dictionary.set_selected(index=self.index, is_selected=value)
+        downloader.root.get_cache().playlist.set_selected(index=self.index, is_selected=value)
 
 
 class MetadataStack(StackLayout):
@@ -134,6 +134,8 @@ class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
 
+        self.cache = cache.Cache()
+
         self.orientation = "vertical"
         self.add_widget(UrlInput())
 
@@ -145,9 +147,9 @@ class MainGui(BoxLayout):
 
         self.metadata_input = MetadataStack()
 
-        self.metadata_input.add_widget(MetadataInput(cache.VorbisComments.ARTIST))
-        self.metadata_input.add_widget(MetadataInput(cache.VorbisComments.ALBUM))
-        self.metadata_input.add_widget(MetadataInput(cache.VorbisComments.GENRE))
+        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ARTIST))
+        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ALBUM))
+        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.GENRE))
 
         self.add_widget(self.metadata_input)
 
@@ -155,22 +157,27 @@ class MainGui(BoxLayout):
         self.rip_button.bind(on_press=start_ripping)
         self.add_widget(self.rip_button)
 
-    def load_playlist(self):
-        if metadata.get_playlist_url() != "":
-            self.video_list.clear_list()
+    def get_cache(self):
+        return self.cache
 
-            playlist_info = ripper.get_playlist_info(metadata.get_playlist_url())
+    def load_playlist(self):
+        if self.cache.get_playlist_url() != "":
+            playlist_url = self.cache.get_playlist_url()
+            playlist_info = ripper.get_playlist_info(playlist_url)
+
+            self.video_list.clear_list()
+            self.cache = cache.Cache(playlist_url)
 
             if len(playlist_info[0]) > 0:
                 playlist = playlist_info[0]
-                metadata.add_metadata(cache.VorbisComments.ALBUM.value, playlist_info[1])
+                self.cache.metadata.add_metadata(metanums.VorbisComments.ALBUM.value, playlist_info[1])
 
                 index = 1
                 for item_name in playlist:
                     self.video_list.add_to_list(ItemSelector(index, item_name))
                     index += 1
 
-                metadata.set_cached_url(metadata.get_playlist_url())
+                self.cache.set_cached_url(playlist_url)
             else:
                 print("[Error] Invalid playlist information returned")
         else:
@@ -183,15 +190,10 @@ class MetagenApp(App):
 
 
 if __name__ == '__main__':
-    playlist_dictionary = cache.PlaylistDictionary()
-    metadata = cache.MetadataCache()
-
-    if len(sys.argv) > 1:
-        url = sys.argv[1]
-    else:
-        url = ""
-
-    metadata.set_playlist_url(url)
+    # if len(sys.argv) > 1:
+    #     url = sys.argv[1]
+    # else:
+    #     url = ""
 
     downloader = MetagenApp()
     downloader.run()
