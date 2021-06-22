@@ -105,7 +105,8 @@ class ItemSelector(BoxLayout):
         self.checkbox.bind(active=self.on_checkbox_active)
         self.add_widget(self.checkbox)
 
-        self.label = Label(text=f"{self.index}. {label_text.replace('_', ' ')}")
+        self.label = Label(text=f"{self.index}. {label_text}")
+        # self.label = Label(text=f"{self.index}. {label_text.replace('_', ' ')}")
         # self.label = Label(text=label_text, size_hint=(0.9, 1), text_size=self.size, halign="left")
         self.add_widget(self.label)
 
@@ -165,6 +166,7 @@ class MainGui(BoxLayout):
 
     def load_playlist(self):
         if self.cache.get_playlist_url() != "":
+            artist = self.cache.metadata.get_tag("artist")
             playlist_url = self.cache.get_playlist_url()
             playlist_info = ripper.get_playlist_info(playlist_url)
 
@@ -185,6 +187,8 @@ class MainGui(BoxLayout):
                     index += 1
 
                 self.cache.set_cached_url(playlist_url)
+                if artist != "":
+                    self.cache.metadata.add_metadata("artist", artist)
             else:
                 print("[Error] Invalid playlist information returned")
         else:

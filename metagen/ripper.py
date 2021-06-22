@@ -16,8 +16,10 @@ DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
 OPTIONS = "--abort-on-error"
+SIM_ARGS = "-s --get-filename"
 
 CLEAR_ON_FAILED_DOWNLOAD = True
+DRY_RUN = False
 
 
 def convert_invalid_characters(string):
@@ -26,15 +28,17 @@ def convert_invalid_characters(string):
     right_quote = "’"
     invalid_filename_chars = "[\\/:*<>|]"
 
-    string = re.sub(double_quotes, "'", string)
-    string = re.sub(question_mark, "", string)
-    string = re.sub(invalid_filename_chars, "-", string)
+    string = re.sub(double_quotes, "", string)
+    string = re.sub(question_mark, " ", string)
+    string = re.sub(invalid_filename_chars, "_", string)
+    string = string.strip()
 
     return string
 
 
 def get_playlist_info(playlist_url):
-    command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
+    # command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
+    command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
 
     raw_playlist = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("unicode_escape")
     raw_playlist = raw_playlist.splitlines()
@@ -59,6 +63,17 @@ def get_playlist_info(playlist_url):
 
 
 def rip_selected_videos(url, video_list, vorbis_comments):
+    """
+
+    :param url: (string) Valid URL
+    :param video_list: (dict) Playlist object from cache.py
+        key: (int) Video's position in playlist
+        value: (boolean, string)
+          boolean - indicates whether an item has been selected by user
+          string - title of the item selected
+    :param vorbis_comments: (dict) Metadata object from cache.py
+    :return:
+    """
     log = f"[Log] url: {url}\n"
 
     artist = ""
@@ -88,11 +103,17 @@ def rip_selected_videos(url, video_list, vorbis_comments):
     if album != "":
         download_dir += f"{album}\\"
 
-    output_template = f"-o \"{download_dir}%(title)s.%(ext)s\""
-    command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {FILENAME_ARGS} {OPTIONS} {output_template} {url}"
+    output_template = f"-o \"{download_dir}%(playlist_index)s.%(ext)s\""
+    if DRY_RUN:
+        command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {SIM_ARGS} {OPTIONS} {output_template} {url}"
+    else:
+        command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {OPTIONS} {output_template} {url}"
     print(f"[Log] {command}")
 
     result = subprocess.run(command, stderr=subprocess.PIPE).stderr.decode("unicode_escape")
+
+    if DRY_RUN:
+        return
 
     if result != "":
         print(f"[Error] Download failed. {result}\n[Error] Aborting.")
@@ -106,10 +127,18 @@ def rip_selected_videos(url, video_list, vorbis_comments):
                     os.remove(r_path)
         return
 
+    filename_padding = len(f"{(list(video_list.keys())[-1])}")
     track_number = 1
     for item in video_list.items():
-        filename = f"{item[1][1]}.ogg"
+        indexed_filename = f"{str(item[0]).zfill(filename_padding)}.ogg"
+        indexed_filepath = os.path.join(download_dir, indexed_filename)
+        filename = convert_invalid_characters(f"{item[1][1]}.ogg")
         filepath = os.path.join(download_dir, filename)
+
+        try:
+            os.replace(indexed_filepath, filepath)
+        except FileNotFoundError:
+            print(f"[Error] Could not replace file: {indexed_filepath}")
 
         print(f"[Log] Original filename: {filename}")
         if artist != "":
@@ -118,8 +147,9 @@ def rip_selected_videos(url, video_list, vorbis_comments):
             # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^()|\])]*(Video|Audio|Lyric|Official)[^()|\])]*(\)|]))")
             # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
 
-            temp_artist = artist.replace(" ", "_")
-            pattern_starting_artist = re.compile(fr"(^[^-]*({temp_artist})[^-]*(-_*|_x_))")
+            # temp_artist = artist.replace(" ", "_")
+            pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))")
+            # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(- *| x ))")
             match_starting_artist = re.search(pattern_starting_artist, filename)
 
             if match_starting_artist is not None:
@@ -128,7 +158,7 @@ def rip_selected_videos(url, video_list, vorbis_comments):
                 filename = re.sub(match_starting_artist.group(1), "", filename)
                 print(f"[Log] After removing artist name: {filename}")
 
-        pattern_lyric_video = re.compile(r"(_Official|_Lyric)(_Audio|_Music|_Lyric)?(_Video|_Audio)")
+        pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?")
         # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
         match_lyric_video = re.search(pattern_lyric_video, filename)
 
@@ -137,8 +167,8 @@ def rip_selected_videos(url, video_list, vorbis_comments):
             print(f"[Log] After removing video type: {filename}")
 
         original_filepath = filepath
-        filename = filename.replace("_", " ")
-        print(f"[Log] After removing underscores: {filename}")
+        # filename = filename.replace("_", " ")
+        # print(f"[Log] After removing underscores: {filename}")
         filepath = os.path.join(download_dir, filename)
 
         try:
