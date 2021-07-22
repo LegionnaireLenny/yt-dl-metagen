@@ -30,6 +30,7 @@ def convert_invalid_characters(string):
 
     string = re.sub(double_quotes, "", string)
     string = re.sub(question_mark, " ", string)
+    string = re.sub(right_quote, "'", string)
     string = re.sub(invalid_filename_chars, "_", string)
     string = string.strip()
 
@@ -148,7 +149,7 @@ def rip_selected_videos(url, video_list, vorbis_comments):
             # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
 
             # temp_artist = artist.replace(" ", "_")
-            pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))")
+            pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))", re.IGNORECASE)
             # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(- *| x ))")
             match_starting_artist = re.search(pattern_starting_artist, filename)
 
@@ -158,7 +159,7 @@ def rip_selected_videos(url, video_list, vorbis_comments):
                 filename = re.sub(match_starting_artist.group(1), "", filename)
                 print(f"[Log] After removing artist name: {filename}")
 
-        pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?")
+        pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?", re.IGNORECASE)
         # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
         match_lyric_video = re.search(pattern_lyric_video, filename)
 
