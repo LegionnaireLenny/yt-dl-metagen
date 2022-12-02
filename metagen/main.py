@@ -2,6 +2,7 @@ import sys
 import cache
 import metanums
 import ripper
+import logging
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button

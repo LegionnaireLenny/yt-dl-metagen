@@ -8,7 +8,9 @@ import re
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
-YOUTUBEDL_PATH = os.path.join(CURR_DIR, "..\\bin\\youtube-dl.exe")
+YTDLP_PATH = os.path.join(CURR_DIR, "..\\bin\\yt-dlp.exe")
+# YOUTUBEDL_PATH = os.path.join(CURR_DIR, "..\\bin\\youtube-dl.exe")
+YOUTUBEDL_PATH = YTDLP_PATH
 FFMPEG_PATH = os.path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
 FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 
@@ -22,22 +24,43 @@ CLEAR_ON_FAILED_DOWNLOAD = True
 DRY_RUN = False
 
 
-def convert_invalid_characters(string):
-    double_quotes = "\""
-    question_mark = r"\?"
-    right_quote = "’"
-    invalid_filename_chars = "[\\/:*<>|]"
+def convert_invalid_characters(string: str) -> str:
+    if string is not None:
+        double_quotes = "\""
+        question_mark = r"\?"
+        right_quote = "’"
+        invalid_filename_chars = "[\\/:*<>|]"
 
-    string = re.sub(double_quotes, "", string)
-    string = re.sub(question_mark, " ", string)
-    string = re.sub(right_quote, "'", string)
-    string = re.sub(invalid_filename_chars, "_", string)
-    string = string.strip()
+        string = re.sub(double_quotes, "", string)
+        string = re.sub(question_mark, " ", string)
+        string = re.sub(right_quote, "'", string)
+        string = re.sub(invalid_filename_chars, "_", string)
+        string = string.strip()
 
     return string
 
 
-def get_playlist_info(playlist_url):
+def correct_invalid_json(invalid_json: str) -> str:
+    print(invalid_json)
+    pattern_title = re.compile(fr"\"title\":\s*\"(.*?)\"(,|\s*}})")
+    match_title = re.search(pattern_title, invalid_json)
+    # https://www.youtube.com/playlist?list=OLAK5uy_mFNUV0q9q1Fu5Q0J3zsQ81lYiV_hV_fcM
+
+    if match_title:
+        validated_json = ""
+        for match in match_title.groups():
+            # matched_text = match
+            replacement_text = re.sub(match, re.sub("\"", "", match_title.group(1)), match)
+            # replacement_text = re.sub(match, re.sub("\"", "", match_title.group(1)), match)
+            # validated_json += re.sub()
+
+            print(validated_json)
+        return validated_json
+    else:
+        return invalid_json
+
+
+def get_playlist_info(playlist_url: str) -> ([str], str):
     # command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
     command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
 
@@ -53,6 +76,7 @@ def get_playlist_info(playlist_url):
             playlist.append(raw_playlist[i])
 
         try:
+            correct_invalid_json(json_info)
             json_dump = json.loads(json_info)
             playlist_title = json_dump['title']
         except json.decoder.JSONDecodeError:
