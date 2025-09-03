@@ -4,6 +4,7 @@ import metanums
 import ripper
 import logging
 from kivy.app import App
+from kivy.effects.scroll import ScrollEffect
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
@@ -129,6 +130,10 @@ class ScrollStack(ScrollView):
         super().__init__()
 
         self.list_stack = StackLayout(size_hint=(1, None))
+        self.list_stack.bind(minimum_height=self.list_stack.setter("height"))
+        self.scroll_wheel_distance = 40
+        self.smooth_scroll_end = 5
+        self.effect_cls = ScrollEffect
         self.add_widget(self.list_stack)
 
     def add_to_list(self, item):
