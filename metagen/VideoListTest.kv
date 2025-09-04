@@ -1,11 +1,42 @@
 #:kivy 2.0.0
-<VideoEntry@GridLayout>:
+<MainGui@BoxLayout>:
     content: content.__self__
-    GridLayout:
-        cols: 2
-        CheckBox:
-        Label:
 
-<VideoList>:
-    list_widget: list_widget.__self__
-    VideoEntry:
+<UrlInput@BoxLayout>
+    size_hint: 1, None
+    size: self.width, 30
+    Button:
+        text: "Fetch"
+        size_hint: None, 1
+        size: 60, self.height
+        on_press: self.fetch_playlist
+    TextInput:
+        hint_text: "Enter playlist URL here"
+        multiline: False
+        write_tab: False
+        on_text: self.text
+
+<PlaylistItem@BoxLayout>:
+    size_hint: 1, None
+    size = self.width, 35
+    CheckBox:
+        active: self.on_checkbox_active
+        size_hint: None, 1
+        size: 60, self.height
+    TextInput:
+        text: f"{self.index}"
+        hint_text: f"{self.index}"
+        input_filter: "int"
+        size_hint: 0, 1
+        size: 45, self.height
+        multiline: False
+    Label:
+        text: f"{label_text}")
+
+<ScrollStack@ScrollView>:
+    scroll_wheel_distance: 40
+    smooth_scroll_end: 5
+    effect_cls: ScrollEffect
+    StackLayout:
+        size_hint: 1, None
+        minimum_height: self.stack.setter("height"))

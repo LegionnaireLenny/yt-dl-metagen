@@ -9,8 +9,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 
 YTDLP_PATH = os.path.join(CURR_DIR, "..\\bin\\yt-dlp.exe")
-# YOUTUBEDL_PATH = os.path.join(CURR_DIR, "..\\bin\\youtube-dl.exe")
-YOUTUBEDL_PATH = YTDLP_PATH
 FFMPEG_PATH = os.path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
 FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 
@@ -61,8 +59,8 @@ def correct_invalid_json(invalid_json: str) -> str:
 
 
 def get_playlist_info(playlist_url: str) -> ([str], str):
-    # command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
-    command = f"\"{YOUTUBEDL_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
+    # command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
+    command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
 
     raw_playlist = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("unicode_escape")
     raw_playlist = raw_playlist.splitlines()
@@ -87,15 +85,13 @@ def get_playlist_info(playlist_url: str) -> ([str], str):
     return playlist, playlist_title
 
 
-def rip_selected_videos(url, video_list, vorbis_comments):
+def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
 
     :param url: (string) Valid URL
     :param video_list: (dict) Playlist object from cache.py
         key: (int) Video's position in playlist
-        value: (boolean, string)
-          boolean - indicates whether an item has been selected by user
-          string - title of the item selected
+        value: (string) title of the item selected
     :param vorbis_comments: (dict) Metadata object from cache.py
     :return:
     """
@@ -117,7 +113,7 @@ def rip_selected_videos(url, video_list, vorbis_comments):
 
     print("[Log] Pending Playlist")
     for item in video_list.items():
-        print(f"[Log] {item[0]}. {item[1][1]}")
+        print(f"[Log] {item[0]}. {item[1]}")
         playlist_items += f"{item[0]},"
 
     playlist_items = playlist_items[:-1]
@@ -130,9 +126,9 @@ def rip_selected_videos(url, video_list, vorbis_comments):
 
     output_template = f"-o \"{download_dir}%(playlist_index)s.%(ext)s\""
     if DRY_RUN:
-        command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {SIM_ARGS} {OPTIONS} {output_template} {url}"
+        command = f"\"{YTDLP_PATH}\" {playlist_items} {AUDIO_ARGS} {SIM_ARGS} {OPTIONS} {output_template} {url}"
     else:
-        command = f"\"{YOUTUBEDL_PATH}\" {playlist_items} {AUDIO_ARGS} {OPTIONS} {output_template} {url}"
+        command = f"\"{YTDLP_PATH}\" {playlist_items} {AUDIO_ARGS} {OPTIONS} {output_template} {url}"
     print(f"[Log] {command}")
 
     result = subprocess.run(command, stderr=subprocess.PIPE).stderr.decode("unicode_escape")
@@ -153,11 +149,10 @@ def rip_selected_videos(url, video_list, vorbis_comments):
         return
 
     filename_padding = len(f"{(list(video_list.keys())[-1])}")
-    track_number = 1
     for item in video_list.items():
         indexed_filename = f"{str(item[0]).zfill(filename_padding)}.ogg"
         indexed_filepath = os.path.join(download_dir, indexed_filename)
-        filename = convert_invalid_characters(f"{item[1][1]}.ogg")
+        filename = convert_invalid_characters(f"{item[1]}.ogg")
         filepath = os.path.join(download_dir, filename)
 
         try:
@@ -202,9 +197,7 @@ def rip_selected_videos(url, video_list, vorbis_comments):
             print(f"[Error] Could not replace file: {original_filepath}")
 
         if os.path.isfile(filepath):
-            metagen.add_vorbis_metadata(filepath, filename[:-4], str(track_number), vorbis_comments)
+            metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[0]), vorbis_comments)
         else:
             print(f"[Error] Path is not file: {filepath}")
-
-        track_number += 1
     print("[Log] Ripping complete")

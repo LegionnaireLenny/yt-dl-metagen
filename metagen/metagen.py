@@ -18,8 +18,3 @@ def add_vorbis_metadata(filepath, title, tracknumber, vorbis_comments):
     except mutagen.MutagenError as e:
         print(f"[Error] Mutagen could not find file: {filepath} -> {title}")
         print(f"[Mutagen] {e}")
-
-
-
-
-
