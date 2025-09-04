@@ -84,14 +84,15 @@ def get_playlist_info(playlist_url: str) -> ([str], str):
 
     return playlist, playlist_title
 
-
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
 
     :param url: (string) Valid URL
     :param video_list: (dict) Playlist object from cache.py
         key: (int) Video's position in playlist
-        value: (string) title of the item selected
+        value (int, string):
+            (int) user-defined tracknumber
+            (string) title of the item selected
     :param vorbis_comments: (dict) Metadata object from cache.py
     :return:
     """
@@ -113,7 +114,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
 
     print("[Log] Pending Playlist")
     for item in video_list.items():
-        print(f"[Log] {item[0]}. {item[1]}")
+        print(f"[Log] {item[1][0]}. {item[1][1]}")
         playlist_items += f"{item[0]},"
 
     playlist_items = playlist_items[:-1]
@@ -152,7 +153,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     for item in video_list.items():
         indexed_filename = f"{str(item[0]).zfill(filename_padding)}.ogg"
         indexed_filepath = os.path.join(download_dir, indexed_filename)
-        filename = convert_invalid_characters(f"{item[1]}.ogg")
+        filename = convert_invalid_characters(f"{item[1][1]}.ogg")
         filepath = os.path.join(download_dir, filename)
 
         try:
@@ -197,7 +198,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
             print(f"[Error] Could not replace file: {original_filepath}")
 
         if os.path.isfile(filepath):
-            metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[0]), vorbis_comments)
+            metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[1][0]), vorbis_comments)
         else:
             print(f"[Error] Path is not file: {filepath}")
     print("[Log] Ripping complete")

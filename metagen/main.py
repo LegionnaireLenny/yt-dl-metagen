@@ -10,6 +10,8 @@ from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
+from typing import List
 
 
 class UrlInput(BoxLayout):
@@ -27,6 +29,9 @@ class UrlInput(BoxLayout):
                                multiline=False,
                                write_tab=False)
         self.add_widget(self.input)
+
+    def get_url(self) -> str:
+        return self.input.text
 
     def fetch_playlist(self, instance):
         downloader.root.load_playlist(self.input.text)
@@ -54,7 +59,7 @@ class MetadataInput(BoxLayout):
         self.add_widget(self.button)
 
         self.dropdown.bind(on_select=lambda instance, x: setattr(self.button, "text", x))
-        self.dropdown.bind(on_select=lambda instance, x: self.set_tag(x))
+        self.dropdown.bind(on_select=lambda instance, x: self.set_tag_label(x))
 
         self.input = TextInput(text="",
                                hint_text=f"Enter {self.tag.value} here",
@@ -62,9 +67,17 @@ class MetadataInput(BoxLayout):
                                write_tab=False)
         self.add_widget(self.input)
 
-    def set_tag(self, instance):
+    def get_tag_label(self) -> metanums.VorbisComments:
+        return self.tag
+
+    def set_tag_label(self, instance):
         self.tag = metanums.VorbisComments[instance]
 
+    def get_tag(self) -> str:
+        return self.input.text
+
+    def set_tag(self, tag):
+        self.input.text = tag
 
 class PlaylistItem(BoxLayout):
     def __init__(self, index, label_text):
@@ -88,6 +101,21 @@ class PlaylistItem(BoxLayout):
         self.label = Label(text=f"{label_text}")
         self.add_widget(self.label)
 
+    def is_selected(self) -> bool:
+        return self.checkbox.active
+
+    def get_tracknumber(self) -> str:
+        if self.index_input.text != "":
+            return self.index_input.text
+        else:
+            return self.index_input.hint_text
+
+    def get_playlist_index(self) -> str:
+        return self.index_input.hint_text
+
+    def get_title(self) -> str:
+        return self.label.text
+
 
 class ScrollStack(ScrollView):
     def __init__(self):
@@ -99,6 +127,9 @@ class ScrollStack(ScrollView):
         self.stack = StackLayout(size_hint=(1, None))
         self.stack.bind(minimum_height=self.stack.setter("height"))
         self.add_widget(self.stack)
+
+    def get_contents(self) -> List[Widget]:
+        return self.stack.children
 
     def add(self, item):
         self.stack.add_widget(item)
@@ -139,12 +170,12 @@ class MainGui(BoxLayout):
                 playlist = playlist_info[0]
                 playlist_title = playlist_info[1]
                 for child in self.metadata_input.children:
-                    if child.tag == metanums.VorbisComments.ALBUM:
-                        child.input.text = playlist_title
+                    if child.get_tag_label() == metanums.VorbisComments.ALBUM:
+                        child.set_tag(playlist_title)
 
                 index = 1
-                for item_name in playlist:
-                    self.video_list.add(PlaylistItem(index, item_name))
+                for title in playlist:
+                    self.video_list.add(PlaylistItem(index, title))
                     index += 1
             else:
                 print("[Error] Invalid playlist information returned")
@@ -152,21 +183,22 @@ class MainGui(BoxLayout):
             print("[Error] No URL entered")
 
     def rip_playlist(self, instance):
-        url = self.url_input.input.text
+        url = self.url_input.get_url()
 
         if url != "":
             selected_videos = {}
-            for item in self.video_list.stack.children:
-                if item.checkbox.active:
-                    index = item.index_input.text
-                    fallback_index = item.index_input.hint_text
-                    selected_videos[index if index != "" else fallback_index ] = item.label.text
+            for item in self.video_list.get_contents():
+                if item.is_selected():
+                    tracknumber = item.get_tracknumber()
+                    playlist_index = item.get_playlist_index()
+                    title = item.get_title()
+                    selected_videos[playlist_index] = (tracknumber, title)
 
             metadata = {}
             for child in self.metadata_input.children:
                 for comment in metanums.VorbisComments:
-                    if child.tag == comment:
-                        metadata[comment.value] = child.input.text
+                    if child.get_tag_label() == comment:
+                        metadata[comment.value] = child.get_tag()
 
             ripper.rip_selected_videos(url, selected_videos, metadata)
         else:
