@@ -60,6 +60,34 @@ def correct_invalid_json(invalid_json: str) -> str:
         return invalid_json
 
 
+def fix_title(artist, filename):
+    print(f"[Log] Original filename: {filename}")
+    if artist != "":
+        # pattern_open_paren = re.compile(r"\s*(\(|\[)")
+        # pattern_no_close_paren = re.compile(r"[^()|\])]*")
+        # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^()|\])]*(Video|Audio|Lyric|Official)[^()|\])]*(\)|]))")
+        # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
+
+        # temp_artist = artist.replace(" ", "_")
+        pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))", re.IGNORECASE)
+        # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(- *| x ))")
+        match_starting_artist = re.search(pattern_starting_artist, filename)
+
+        if match_starting_artist is not None:
+            # for group in match_starting_artist.groups():
+            #     print(group)
+            filename = re.sub(match_starting_artist.group(1), "", filename)
+            print(f"[Log] After removing artist name: {filename}")
+
+    pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?", re.IGNORECASE)
+    # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
+    match_lyric_video = re.search(pattern_lyric_video, filename)
+    if match_lyric_video is not None:
+        filename = filename.replace(match_lyric_video.group(), "")
+        print(f"[Log] After removing video type: {filename}")
+    return filename
+
+
 def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str]:
     # command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
     command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
@@ -77,7 +105,8 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str]:
             playlist.append(raw_playlist[i])
 
         try:
-            correct_invalid_json(json_info)
+            # correct_invalid_json(json_info)
+            print(f"[Debug] {json_info}")
             json_dump = json.loads(json_info)
             playlist_title = json_dump["title"]
             channel_name = json_dump["channel"]
@@ -87,6 +116,7 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str]:
         print("[Error] Playlist is empty")
 
     return playlist, playlist_title, channel_name
+
 
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
@@ -165,44 +195,18 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
         except FileNotFoundError:
             print(f"[Error] Could not replace file: {indexed_filepath}")
 
-        print(f"[Log] Original filename: {filename}")
-        if artist != "":
-            # pattern_open_paren = re.compile(r"\s*(\(|\[)")
-            # pattern_no_close_paren = re.compile(r"[^()|\])]*")
-            # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^()|\])]*(Video|Audio|Lyric|Official)[^()|\])]*(\)|]))")
-            # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
-
-            # temp_artist = artist.replace(" ", "_")
-            pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))", re.IGNORECASE)
-            # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(- *| x ))")
-            match_starting_artist = re.search(pattern_starting_artist, filename)
-
-            if match_starting_artist is not None:
-                # for group in match_starting_artist.groups():
-                #     print(group)
-                filename = re.sub(match_starting_artist.group(1), "", filename)
-                print(f"[Log] After removing artist name: {filename}")
-
-        pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?", re.IGNORECASE)
-        # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
-        match_lyric_video = re.search(pattern_lyric_video, filename)
-
-        if match_lyric_video is not None:
-            filename = filename.replace(match_lyric_video.group(), "")
-            print(f"[Log] After removing video type: {filename}")
+        # filename = fix_title(artist, filename)
 
         original_filepath = filepath
-        # filename = filename.replace("_", " ")
-        # print(f"[Log] After removing underscores: {filename}")
         filepath = os.path.join(download_dir, filename)
 
         try:
             os.replace(original_filepath, filepath)
         except FileNotFoundError:
-            print(f"[Error] Could not replace file: {original_filepath}")
+            print(f"[Error] Could not find file file: {original_filepath}")
 
         if os.path.isfile(filepath):
             metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[1][0]), vorbis_comments)
         else:
-            print(f"[Error] Path is not file: {filepath}")
+            print(f"[Error] Path is not a file: {filepath}")
     print("[Log] Ripping complete")
