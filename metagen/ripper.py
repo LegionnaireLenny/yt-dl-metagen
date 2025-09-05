@@ -1,5 +1,7 @@
 import os
 import json
+from typing import Tuple, List
+
 import metanums
 import metagen
 import subprocess
@@ -58,7 +60,7 @@ def correct_invalid_json(invalid_json: str) -> str:
         return invalid_json
 
 
-def get_playlist_info(playlist_url: str) -> ([str], str):
+def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str]:
     # command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
     command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
 
@@ -67,6 +69,7 @@ def get_playlist_info(playlist_url: str) -> ([str], str):
 
     playlist = []
     playlist_title = ""
+    channel_name = ""
     if len(raw_playlist) > 0:
         json_info = raw_playlist.pop(len(raw_playlist) - 1)
 
@@ -76,13 +79,14 @@ def get_playlist_info(playlist_url: str) -> ([str], str):
         try:
             correct_invalid_json(json_info)
             json_dump = json.loads(json_info)
-            playlist_title = json_dump['title']
+            playlist_title = json_dump["title"]
+            channel_name = json_dump["channel"]
         except json.decoder.JSONDecodeError:
             print("[Error] Invalid json obtained from playlist page.")
     else:
         print("[Error] Playlist is empty")
 
-    return playlist, playlist_title
+    return playlist, playlist_title, channel_name
 
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
