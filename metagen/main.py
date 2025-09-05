@@ -147,7 +147,7 @@ class ScrollStack(ScrollView):
 class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
-
+        self.padding = 5
         self.orientation = "vertical"
 
         self.url_input = UrlInput()
