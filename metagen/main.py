@@ -1,3 +1,5 @@
+from kivy.uix.dropdown import DropDown
+
 import metanums
 import ripper
 from kivy.app import App
@@ -15,54 +17,68 @@ from kivy.utils import rgba
 from typing import List
 
 # https://www.w3.org/TR/SVG11/types.html#ColorKeywords
+scheme_data = {
+    "border_none": (0, 0, 0, 0),
+    "border_thin": (4, 4, 4, 4),
+    "border_medium": (10, 10, 10, 10),
+    "border_thick": (16, 16, 16, 16)
+}
 color_scheme = {
     "url_button_background": colormap["beige"],
-    "url_button_border": (10,10,10,10),
+    "url_button_border": scheme_data["border_medium"],
     "url_button_text": colormap["beige"],
     "metadata_button_background": colormap["beige"],
-    "metadata_button_border": colormap["tan"],
+    "metadata_button_border": scheme_data["border_medium"],
     "metadata_button_text": colormap["beige"],
     "rip_button_background": colormap["beige"],
-    "rip_button_border": colormap["tan"],
+    "rip_button_border": scheme_data["border_medium"],
     "rip_button_text": colormap["beige"],
     "url_text_background": colormap["beige"],
-    "url_text_border": (10,10,10,10),
+    "url_text_border": scheme_data["border_medium"],
     "url_text_text": colormap["saddlebrown"],
     "url_text_hint_text": colormap["darkgoldenrod"],
-    "url_text_selection": rgba(244, 164, 96, 100), #burlywood
+    "url_text_selection": rgba(244, 164, 96, 100), #sandybrown
     "metadata_text_background": colormap["beige"],
-    "metadata_text_border": (10,10,10,10),
+    "metadata_text_border": scheme_data["border_medium"],
     "metadata_text_text": colormap["saddlebrown"],
     "metadata_text_hint_text": colormap["darkgoldenrod"],
     "metadata_text_selection": rgba(222, 184, 135, 130), #burlywood
+    "playlist_item_checkbox": colormap["green"],
     "playlist_item_tracknumber_background": colormap["beige"],
-    "playlist_item_tracknumber_border": (10,10,10,10),
-    "playlist_item_tracknumber_text": colormap["brown"],
+    "playlist_item_tracknumber_border": scheme_data["border_medium"],
+    "playlist_item_tracknumber_text": colormap["saddlebrown"],
     "playlist_item_tracknumber_hint_text": colormap["darkgoldenrod"],
     "playlist_item_tracknumber_selection": rgba(222, 184, 135, 130), #burlywood
     "playlist_item_title_background": colormap["beige"],
-    "playlist_item_title_border": (10,10,10,10),
+    "playlist_item_title_border": scheme_data["border_medium"],
     "playlist_item_title_text": colormap["saddlebrown"],
     "playlist_item_title_hint_text": colormap["darkgoldenrod"],
     "playlist_item_title_selection": rgba(222, 184, 135, 130), #burlywood
+    "scrollbar_active": colormap["forestgreen"],
+    "scrollbar_inactive": colormap["green"],
+    "window_background": colormap["peachpuff"],
+    "window_title_bar": colormap["peachpuff"],
 }
-
+testing_url = ""
 
 class UrlInput(BoxLayout):
-    def __init__(self):
+    def __init__(self, url=""):
         super().__init__()
-        self.size_hint_max_y = 30
+        self.size_hint_y = None
+        self.height = 30
+        self.spacing = 4
 
         self.button = Button(text="Fetch",
                              size_hint_x=None,
                              width=60,
-                             background_color = color_scheme["url_button_background"],
-                             border = color_scheme["url_button_border"],
-                             color = color_scheme["url_button_text"],
-                             on_press =self.fetch_playlist)
+                             background_color=color_scheme["url_button_background"],
+                             border=color_scheme["url_button_border"],
+                             color=color_scheme["url_button_text"],
+                             on_release=self.fetch_playlist)
         self.add_widget(self.button)
 
-        self.input = TextInput(hint_text="Enter playlist URL here",
+        self.input = TextInput(text=url,
+                               hint_text="Enter playlist URL here",
                                background_color=color_scheme["url_text_background"],
                                border=color_scheme["url_text_border"],
                                foreground_color=color_scheme["url_text_text"],
@@ -82,21 +98,19 @@ class UrlInput(BoxLayout):
 
 class MetadataInput(BoxLayout):
     def __init__(self, metadata_tag):
-        """
-        :param metadata_tag (enum):
-        """
         super().__init__()
-
-        self.size_hint = (1, None)
-        self.size = (self.width, 30)
+        self.size_hint_y = None
+        self.height = 30
+        self.spacing = 4
         self.tag = metadata_tag
 
         self.button = Button(text=self.tag.name,
-                             size_hint=(None, 1),
-                             size=(120, self.height),
+                             size_hint_x=None,
+                             width=80,
                              background_color=color_scheme["metadata_button_background"],
                              border=color_scheme["metadata_button_border"],
                              color=color_scheme["metadata_button_text"])
+        self.button.background_down = self.button.background_normal
         self.add_widget(self.button)
 
         self.input = TextInput(text="",
@@ -125,13 +139,16 @@ class MetadataInput(BoxLayout):
 class PlaylistItem(BoxLayout):
     def __init__(self, index, label_text):
         super().__init__()
-        self.text_left_padding = (3,1,1,0)
+        self.text_left_padding = (4,1,1,0)
         self.text_center_padding = (0,1,0,0)
-        self.size_hint_max_y = 20
+        self.size_hint_y = None
+        self.height = 20
+        self.spacing = 4
 
         self.checkbox = CheckBox(active=True,
                                  size_hint_x=None,
-                                 width=40)
+                                 width=40,
+                                 color= color_scheme["playlist_item_checkbox"])
         self.add_widget(self.checkbox)
 
         self.tracknumber = TextInput(text=f"{index}",
@@ -152,7 +169,6 @@ class PlaylistItem(BoxLayout):
 
         self.title = TextInput(text=f"{label_text}",
                                hint_text=f"{label_text}",
-                               size_hint=(1, 1),
                                padding=self.text_left_padding,
                                background_color=color_scheme["playlist_item_title_background"],
                                border=color_scheme["playlist_item_title_border"],
@@ -188,8 +204,12 @@ class ScrollStack(ScrollView):
         self.scroll_wheel_distance = 40
         self.smooth_scroll_end = 5
         self.effect_cls = ScrollEffect
+        self.bar_width = 3
+        self.bar_margin = -1
+        self.bar_color = color_scheme["scrollbar_active"]
+        self.bar_inactive_color = color_scheme["scrollbar_inactive"]
 
-        self.stack = StackLayout(size_hint=(1, None), padding=(0, 5, 0, 0))
+        self.stack = StackLayout(size_hint_y=None, spacing= 2)
         self.stack.bind(minimum_height=self.stack.setter("height"))
         self.add_widget(self.stack)
 
@@ -207,25 +227,41 @@ class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
         self.padding = 5
+        self.spacing = 3
         self.orientation = "vertical"
-
         Window.clearcolor = colormap["peachpuff"]
 
-        self.url_input = UrlInput()
+        # TODO Make a custom title bar
+        # Window.custom_titlebar = True
+        # Window.set_custom_titlebar(CustomTitleBar())
+
+        self.url_input = UrlInput(testing_url)
         self.add_widget(self.url_input)
 
         self.playlist = ScrollStack()
         self.add_widget(self.playlist)
 
-        self.metadata_input = StackLayout(size_hint=(1, None))
+        self.metadata_box = BoxLayout(orientation="horizontal",
+                                      spacing=3,
+                                      size_hint_y=None,
+                                      height=100)
+        self.metadata_input = StackLayout(size_hint=(0.7, None), spacing=4)
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ARTIST))
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ALBUM))
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.GENRE))
-        self.add_widget(self.metadata_input)
+        self.metadata_box.add_widget(self.metadata_input)
+
+        # TODO album art dropdown selector
+        self.cover_art_selector = Button(text="Album Art",
+                                         size_hint_max=(128,128),
+                                         size_hint_min=(64,64),
+                                         size_hint=(0.3, None))
+        self.metadata_box.add_widget(self.cover_art_selector)
+        self.add_widget(self.metadata_box)
 
         self.rip_button = Button(text="Rip playlist",
-                                 size_hint=(1, None),
-                                 size=(self.width, 50),
+                                 size_hint_y=None,
+                                 height=50,
                                  background_color=color_scheme["rip_button_background"],
                                  border=color_scheme["rip_button_border"],
                                  color=color_scheme["rip_button_text"])
