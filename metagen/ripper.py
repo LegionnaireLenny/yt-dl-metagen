@@ -93,6 +93,7 @@ def fix_title(artist, filename):
     return filename
 
 
+# TODO make async
 def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[str]:
     print(f"[Debug] Urls {thumbnail_urls}")
     thumbnail_paths = []
@@ -120,7 +121,7 @@ def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[
     print(f"[Debug] Thumbnail paths: {thumbnail_paths}")
     return thumbnail_paths
 
-
+# TODO make async
 def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]]:
     print(f"[Log] Getting playlist: {playlist_url}")
     command = f"\"{YTDLP_PATH}\" --flat-playlist --print title --dump-single-json {playlist_url} "
@@ -157,7 +158,7 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
 
     return playlist_tracks, playlist_title.strip(), channel_name.strip(), thumbnail_paths
 
-
+# TODO make async
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
     :param url: (string) Valid URL

@@ -13,73 +13,17 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
-from kivy.utils import rgba
 
-import metanums
 import ripper
+from metanums import VorbisComments
+from ui_themes import color_scheme
 
-# https://www.w3.org/TR/SVG11/types.html#ColorKeywords
-scheme_data = {
-    "border_none": (0, 0, 0, 0),
-    "border_thin": (4, 4, 4, 4),
-    "border_medium": (10, 10, 10, 10),
-    "border_thick": (16, 16, 16, 16)
-}
-color_scheme = {
-    # URL Fetch button
-    "url_button_background": colormap["beige"],
-    "url_button_border": scheme_data["border_medium"],
-    "url_button_text": colormap["beige"],
-    # Metadata label button
-    "metadata_button_background": colormap["beige"],
-    "metadata_button_border": scheme_data["border_medium"],
-    "metadata_button_text": colormap["beige"],
-    # Covert art button
-    "cover_art_button_background": colormap["beige"],
-    "cover_art_button_border": scheme_data["border_medium"],
-    "cover_art_button_text": colormap["beige"],
-    # Rip playlist button
-    "rip_button_background": colormap["beige"],
-    "rip_button_border": scheme_data["border_medium"],
-    "rip_button_text": colormap["beige"],
-    # URL text input
-    "url_text_background": colormap["beige"],
-    "url_text_border": scheme_data["border_medium"],
-    "url_text_text": colormap["saddlebrown"],
-    "url_text_hint_text": colormap["darkgoldenrod"],
-    "url_text_selection": rgba(244, 164, 96, 100), #sandybrown
-    # Metadata text input
-    "metadata_text_background": colormap["beige"],
-    "metadata_text_border": scheme_data["border_medium"],
-    "metadata_text_text": colormap["saddlebrown"],
-    "metadata_text_hint_text": colormap["darkgoldenrod"],
-    "metadata_text_selection": rgba(222, 184, 135, 130), #burlywood
-    # Playlist item checkbox
-    "playlist_item_checkbox": colormap["green"],
-    # Playlist tracknumber text input
-    "playlist_item_tracknumber_background": colormap["beige"],
-    "playlist_item_tracknumber_border": scheme_data["border_medium"],
-    "playlist_item_tracknumber_text": colormap["saddlebrown"],
-    "playlist_item_tracknumber_hint_text": colormap["darkgoldenrod"],
-    "playlist_item_tracknumber_selection": rgba(222, 184, 135, 130), #burlywood
-    # Playlist title text input
-    "playlist_item_title_background": colormap["beige"],
-    "playlist_item_title_border": scheme_data["border_medium"],
-    "playlist_item_title_text": colormap["saddlebrown"],
-    "playlist_item_title_hint_text": colormap["darkgoldenrod"],
-    "playlist_item_title_selection": rgba(222, 184, 135, 130), #burlywood
-    # Playlist scrollbar
-    "scrollbar_active": colormap["forestgreen"],
-    "scrollbar_inactive": colormap["green"],
-    # Window colors
-    "window_background": colormap["peachpuff"],
-    "window_title_bar": colormap["peachpuff"],
-}
 testing_url = ""
 
 class UrlInput(BoxLayout):
-    def __init__(self, url=""):
+    def __init__(self, fetch, url=""):
         super().__init__()
+        self.fetch = fetch
         self.size_hint_y = None
         self.height = 30
         self.spacing = 4
@@ -110,7 +54,7 @@ class UrlInput(BoxLayout):
 
     # noinspection PyUnusedLocal
     def fetch_playlist(self, instance):
-        downloader.root.load_playlist(self.input.text)
+        self.fetch(self.get_url())
 
 
 class MetadataInput(BoxLayout):
@@ -141,11 +85,11 @@ class MetadataInput(BoxLayout):
                                write_tab=False)
         self.add_widget(self.input)
 
-    def get_tag_label(self) -> metanums.VorbisComments:
+    def get_tag_label(self) -> VorbisComments:
         return self.tag
 
     def set_tag_label(self, instance):
-        self.tag = metanums.VorbisComments[instance]
+        self.tag = VorbisComments[instance]
 
     def get_tag(self) -> str:
         return self.input.text
@@ -255,7 +199,9 @@ class MainGui(BoxLayout):
         # Window.custom_titlebar = True
         # Window.set_custom_titlebar(CustomTitleBar())
 
-        self.url_input = UrlInput(testing_url)
+        # TODO Add a panel that shows logs
+
+        self.url_input = UrlInput(self.load_playlist, testing_url)
         self.add_widget(self.url_input)
 
         self.playlist = ScrollStack()
@@ -266,9 +212,9 @@ class MainGui(BoxLayout):
                                       size_hint_y=None,
                                       height=100)
         self.metadata_input = StackLayout(size_hint=(0.7, None), spacing=4)
-        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ARTIST))
-        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.ALBUM))
-        self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.GENRE))
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.ARTIST))
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.ALBUM))
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.GENRE))
         self.metadata_box.add_widget(self.metadata_input)
 
         self.dropdown = DropDown(scroll_wheel_distance=80)
@@ -319,9 +265,9 @@ class MainGui(BoxLayout):
                     playlist_title = playlist_info[1]
                     channel_name = playlist_info[2]
                     for child in self.metadata_input.children:
-                        if child.get_tag_label() == metanums.VorbisComments.ALBUM:
+                        if child.get_tag_label() == VorbisComments.ALBUM:
                             child.set_tag(playlist_title)
-                        if child.get_tag_label() == metanums.VorbisComments.ARTIST:
+                        if child.get_tag_label() == VorbisComments.ARTIST:
                             child.set_tag(channel_name)
 
                     index = 1
@@ -352,12 +298,12 @@ class MainGui(BoxLayout):
 
             metadata = {}
             for child in self.metadata_input.children:
-                for comment in metanums.VorbisComments:
+                for comment in VorbisComments:
                     if child.get_tag_label() == comment:
                         metadata[comment.value] = child.get_tag()
 
             if "thumbnails" in self.cover_art_button.background_normal:
-                metadata[metanums.VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
+                metadata[VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
             ripper.rip_selected_videos(url, selected_videos, metadata)
         else:
             print("[Error] No playlist entered")
