@@ -1,7 +1,7 @@
 import json
-import os
 import re
 import subprocess
+from os import path, replace, walk, remove, makedirs
 from typing import Tuple, List
 
 import requests
@@ -9,22 +9,24 @@ import requests
 import metagen
 import metanums
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CURR_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
+CURR_DIR = path.dirname(path.realpath(__file__))
 
-YTDLP_PATH = os.path.join(CURR_DIR, "..\\bin\\yt-dlp.exe")
-FFMPEG_PATH = os.path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
-FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
+YTDLP_PATH = path.join(CURR_DIR, "..\\bin\\yt-dlp.exe")
+FFMPEG_PATH = path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
+FFPROBE_PATH = path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 
-DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
-THUMBNAIL_DIR = os.path.join(DOWNLOAD_DIR, "thumbnails")
+MEDIA_DIR = path.join(CURR_DIR, "..\\media")
+AUDIO_DIR = path.join(MEDIA_DIR, "audio")
+THUMBNAIL_DIR = path.join(MEDIA_DIR, "thumbnails")
+
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
 OPTIONS = "--abort-on-error"
 SIM_ARGS = "-s --get-filename"
 
 CLEAR_ON_FAILED_DOWNLOAD = True
-DRY_RUN = True
+DRY_RUN = False
 
 
 def convert_invalid_characters(string: str) -> str:
@@ -98,7 +100,12 @@ def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[
     try:
         index = 0
         for url in thumbnail_urls:
-            file_path = os.path.realpath(os.path.join(THUMBNAIL_DIR, f"{index}.{url[-3:]}"))
+            directory = path.join(THUMBNAIL_DIR, playlist_title)
+            file_path = path.join(directory, f"{index}.{url[-3:]}")
+
+            if not path.exists(directory):
+                makedirs(directory)
+
             if not DRY_RUN:
                 response = requests.get(url)
                 if response.status_code == 200:
@@ -153,7 +160,6 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
 
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
-
     :param url: (string) Valid URL
     :param video_list: (dict) Playlist object from cache.py
         key: (int) Video's position in playlist
@@ -186,7 +192,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
 
     playlist_items = playlist_items[:-1]
 
-    download_dir = f"{DOWNLOAD_DIR}\\"
+    download_dir = f"{AUDIO_DIR}\\"
     if artist != "":
         download_dir += f"{artist}\\"
     if album != "":
@@ -209,46 +215,46 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
 
         if CLEAR_ON_FAILED_DOWNLOAD:
             print("[Debug] Removing downloaded files")
-            for root, dirs, files in os.walk(download_dir):
+            for root, dirs, files in walk(download_dir):
                 for file in files:
-                    r_path = os.path.join(root, file)
+                    r_path = path.join(root, file)
                     print(f"[Debug] Removing {r_path}")
-                    os.remove(r_path)
+                    remove(r_path)
         return
 
     filename_padding = len(f"{(list(video_list.keys())[-1])}")
     for item in video_list.items():
         indexed_filename = f"{str(item[0]).zfill(filename_padding)}.ogg"
-        indexed_filepath = os.path.join(download_dir, indexed_filename)
+        indexed_filepath = path.join(download_dir, indexed_filename)
         filename = convert_invalid_characters(f"{item[1][1]}.ogg")
-        filepath = os.path.join(download_dir, filename)
+        filepath = path.join(download_dir, filename)
 
         try:
-            os.replace(indexed_filepath, filepath)
+            replace(indexed_filepath, filepath)
         except FileNotFoundError:
             print(f"[Error] Could not replace file: {indexed_filepath}")
 
         # filename = fix_title(artist, filename)
 
         original_filepath = filepath
-        filepath = os.path.join(download_dir, filename)
+        filepath = path.join(download_dir, filename)
 
         try:
-            os.replace(original_filepath, filepath)
+            replace(original_filepath, filepath)
         except FileNotFoundError:
             print(f"[Error] Could not find file file: {original_filepath}")
 
-        if os.path.isfile(filepath):
+        if path.isfile(filepath):
             metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[1][0]), vorbis_comments)
         else:
             print(f"[Error] Path is not a file: {filepath}")
 
-        try:
-            for root, dirs, files in os.walk(THUMBNAIL_DIR):
-                for file in files:
-                    r_path = os.path.join(root, file)
-                    print(f"[Debug] Removing {r_path}")
-                    os.remove(r_path)
-        except Exception as e:
-            print(f"[Error] Failed removing thumbnails: {e}")
+        # try:
+        #     for root, dirs, files in os.walk(THUMBNAIL_DIR):
+        #         for file in files:
+        #             r_path = os.path.join(root, file)
+        #             print(f"[Debug] Removing {r_path}")
+        #             os.remove(r_path)
+        # except Exception as e:
+        #     print(f"[Error] Failed removing thumbnails: {e}")
     print("[Log] Ripping complete")

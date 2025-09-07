@@ -1,7 +1,4 @@
 *.pyc
-/Ripped Audio/
-/bin
-
 *.srt
 *.ttml
 *.sbv
@@ -23,3 +20,5 @@
 # Pycharm files
 .idea
 *.iml
+/bin
+/media/

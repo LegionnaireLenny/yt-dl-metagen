@@ -34,6 +34,10 @@ color_scheme = {
     "metadata_button_background": colormap["beige"],
     "metadata_button_border": scheme_data["border_medium"],
     "metadata_button_text": colormap["beige"],
+    # Covert art button
+    "cover_art_button_background": colormap["beige"],
+    "cover_art_button_border": scheme_data["border_medium"],
+    "cover_art_button_text": colormap["beige"],
     # Rip playlist button
     "rip_button_background": colormap["beige"],
     "rip_button_border": scheme_data["border_medium"],
@@ -267,14 +271,17 @@ class MainGui(BoxLayout):
         self.metadata_input.add_widget(MetadataInput(metanums.VorbisComments.GENRE))
         self.metadata_box.add_widget(self.metadata_input)
 
-        # TODO album art dropdown selector
         self.dropdown = DropDown(scroll_wheel_distance=80)
-        self.album_art_button = Button(text="Album Art",
+        self.dropdown.bind(on_select=lambda x,y: self.set_cover_art(y))
+        self.cover_art_button = Button(text="Cover Art",
                                        size_hint_max=(128,128),
                                        size_hint_min=(64,64),
                                        size_hint=(0.3, None),
+                                       background_color=color_scheme["cover_art_button_background"],
+                                       border=color_scheme["cover_art_button_border"],
+                                       color=color_scheme["cover_art_button_text"],
                                        on_press=self.dropdown.open)
-        self.metadata_box.add_widget(self.album_art_button)
+        self.metadata_box.add_widget(self.cover_art_button)
         self.add_widget(self.metadata_box)
 
         self.rip_button = Button(text="Rip playlist",
@@ -285,6 +292,11 @@ class MainGui(BoxLayout):
                                  color=color_scheme["rip_button_text"])
         self.rip_button.bind(on_press=self.rip_playlist)
         self.add_widget(self.rip_button)
+
+    def set_cover_art(self, thumbnail):
+        self.cover_art_button.background_normal = thumbnail
+        self.cover_art_button.background_down = thumbnail
+        self.cover_art_button.text = ""
 
     def populate_dropdown(self, thumbnails):
         for thumbnail in thumbnails:
@@ -344,8 +356,8 @@ class MainGui(BoxLayout):
                     if child.get_tag_label() == comment:
                         metadata[comment.value] = child.get_tag()
 
-            if "Ripped Audio" in self.album_art_button.background_normal:
-                metadata[metanums.VorbisComments.COVER_ART.value] = self.album_art_button.background_normal
+            if "thumbnails" in self.cover_art_button.background_normal:
+                metadata[metanums.VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
             ripper.rip_selected_videos(url, selected_videos, metadata)
         else:
             print("[Error] No playlist entered")
