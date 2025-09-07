@@ -6,3 +6,4 @@ class VorbisComments(Enum):
     ALBUM = "album"
     # RECORD_LABEL = "organization"
     GENRE = "genre"
+    COVER_ART = "metadata_block_picture"

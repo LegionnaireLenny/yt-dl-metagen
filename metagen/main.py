@@ -1,20 +1,22 @@
-from kivy.uix.dropdown import DropDown
+from typing import List
 
-import metanums
-import ripper
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.effects.scroll import ScrollEffect
+# noinspection PyProtectedMember
 from kivy.properties import colormap
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
+from kivy.uix.dropdown import DropDown
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
 from kivy.utils import rgba
-from typing import List
+
+import metanums
+import ripper
 
 # https://www.w3.org/TR/SVG11/types.html#ColorKeywords
 scheme_data = {
@@ -24,38 +26,48 @@ scheme_data = {
     "border_thick": (16, 16, 16, 16)
 }
 color_scheme = {
+    # URL Fetch button
     "url_button_background": colormap["beige"],
     "url_button_border": scheme_data["border_medium"],
     "url_button_text": colormap["beige"],
+    # Metadata label button
     "metadata_button_background": colormap["beige"],
     "metadata_button_border": scheme_data["border_medium"],
     "metadata_button_text": colormap["beige"],
+    # Rip playlist button
     "rip_button_background": colormap["beige"],
     "rip_button_border": scheme_data["border_medium"],
     "rip_button_text": colormap["beige"],
+    # URL text input
     "url_text_background": colormap["beige"],
     "url_text_border": scheme_data["border_medium"],
     "url_text_text": colormap["saddlebrown"],
     "url_text_hint_text": colormap["darkgoldenrod"],
     "url_text_selection": rgba(244, 164, 96, 100), #sandybrown
+    # Metadata text input
     "metadata_text_background": colormap["beige"],
     "metadata_text_border": scheme_data["border_medium"],
     "metadata_text_text": colormap["saddlebrown"],
     "metadata_text_hint_text": colormap["darkgoldenrod"],
     "metadata_text_selection": rgba(222, 184, 135, 130), #burlywood
+    # Playlist item checkbox
     "playlist_item_checkbox": colormap["green"],
+    # Playlist tracknumber text input
     "playlist_item_tracknumber_background": colormap["beige"],
     "playlist_item_tracknumber_border": scheme_data["border_medium"],
     "playlist_item_tracknumber_text": colormap["saddlebrown"],
     "playlist_item_tracknumber_hint_text": colormap["darkgoldenrod"],
     "playlist_item_tracknumber_selection": rgba(222, 184, 135, 130), #burlywood
+    # Playlist title text input
     "playlist_item_title_background": colormap["beige"],
     "playlist_item_title_border": scheme_data["border_medium"],
     "playlist_item_title_text": colormap["saddlebrown"],
     "playlist_item_title_hint_text": colormap["darkgoldenrod"],
     "playlist_item_title_selection": rgba(222, 184, 135, 130), #burlywood
+    # Playlist scrollbar
     "scrollbar_active": colormap["forestgreen"],
     "scrollbar_inactive": colormap["green"],
+    # Window colors
     "window_background": colormap["peachpuff"],
     "window_title_bar": colormap["peachpuff"],
 }
@@ -92,6 +104,7 @@ class UrlInput(BoxLayout):
     def get_url(self) -> str:
         return self.input.text
 
+    # noinspection PyUnusedLocal
     def fetch_playlist(self, instance):
         downloader.root.load_playlist(self.input.text)
 
@@ -135,6 +148,7 @@ class MetadataInput(BoxLayout):
 
     def set_tag(self, tag):
         self.input.text = tag
+
 
 class PlaylistItem(BoxLayout):
     def __init__(self, index, label_text):
@@ -226,10 +240,12 @@ class ScrollStack(ScrollView):
 class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
+        Window.clearcolor = colormap["peachpuff"]
+        Window.minimum_width = 480
+        Window.minimum_height = 320
         self.padding = 5
         self.spacing = 3
         self.orientation = "vertical"
-        Window.clearcolor = colormap["peachpuff"]
 
         # TODO Make a custom title bar
         # Window.custom_titlebar = True
@@ -252,11 +268,13 @@ class MainGui(BoxLayout):
         self.metadata_box.add_widget(self.metadata_input)
 
         # TODO album art dropdown selector
-        self.cover_art_selector = Button(text="Album Art",
-                                         size_hint_max=(128,128),
-                                         size_hint_min=(64,64),
-                                         size_hint=(0.3, None))
-        self.metadata_box.add_widget(self.cover_art_selector)
+        self.dropdown = DropDown(scroll_wheel_distance=80)
+        self.album_art_button = Button(text="Album Art",
+                                       size_hint_max=(128,128),
+                                       size_hint_min=(64,64),
+                                       size_hint=(0.3, None),
+                                       on_press=self.dropdown.open)
+        self.metadata_box.add_widget(self.album_art_button)
         self.add_widget(self.metadata_box)
 
         self.rip_button = Button(text="Rip playlist",
@@ -268,6 +286,15 @@ class MainGui(BoxLayout):
         self.rip_button.bind(on_press=self.rip_playlist)
         self.add_widget(self.rip_button)
 
+    def populate_dropdown(self, thumbnails):
+        for thumbnail in thumbnails:
+            button = Button(size_hint_max=(128, 128),
+                            size_hint_min=(64, 64),
+                            size_hint=(0.3, None),
+                            background_normal=thumbnail,
+                            background_down=thumbnail)
+            button.bind(on_release=lambda btn: self.dropdown.select(btn.background_normal))
+            self.dropdown.add_widget(button)
 
     def load_playlist(self, url):
         try:
@@ -289,6 +316,8 @@ class MainGui(BoxLayout):
                     for title in playlist:
                         self.playlist.add(PlaylistItem(index, title))
                         index += 1
+
+                    self.populate_dropdown(playlist_info[3])
                 else:
                     print("[Error] Invalid playlist information returned")
             else:
@@ -296,6 +325,7 @@ class MainGui(BoxLayout):
         except Exception as e:
             print(f"[Error] Error loading playlist information.\n{e}")
 
+    # noinspection PyUnusedLocal
     def rip_playlist(self, instance):
         url = self.url_input.get_url()
 
@@ -314,6 +344,8 @@ class MainGui(BoxLayout):
                     if child.get_tag_label() == comment:
                         metadata[comment.value] = child.get_tag()
 
+            if "Ripped Audio" in self.album_art_button.background_normal:
+                metadata[metanums.VorbisComments.COVER_ART.value] = self.album_art_button.background_normal
             ripper.rip_selected_videos(url, selected_videos, metadata)
         else:
             print("[Error] No playlist entered")

@@ -1,11 +1,13 @@
-import os
 import json
+import os
+import re
+import subprocess
 from typing import Tuple, List
 
-import metanums
+import requests
+
 import metagen
-import subprocess
-import re
+import metanums
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -15,13 +17,14 @@ FFMPEG_PATH = os.path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
 FFPROBE_PATH = os.path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
 
 DOWNLOAD_DIR = os.path.join(CURR_DIR, "..\\Ripped Audio")
+THUMBNAIL_DIR = os.path.join(DOWNLOAD_DIR, "thumbnails")
 AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
 FILENAME_ARGS = "--restrict-filenames"
 OPTIONS = "--abort-on-error"
 SIM_ARGS = "-s --get-filename"
 
 CLEAR_ON_FAILED_DOWNLOAD = True
-DRY_RUN = False
+DRY_RUN = True
 
 
 def convert_invalid_characters(string: str) -> str:
@@ -88,34 +91,64 @@ def fix_title(artist, filename):
     return filename
 
 
-def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str]:
-    # command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename {FILENAME_ARGS} -o %(title)s {playlist_url}"
-    command = f"\"{YTDLP_PATH}\" --flat-playlist -e -J --get-filename -o %(title)s {playlist_url}"
+def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[str]:
+    print(f"[Debug] Urls {thumbnail_urls}")
+    thumbnail_paths = []
+
+    try:
+        index = 0
+        for url in thumbnail_urls:
+            file_path = os.path.realpath(os.path.join(THUMBNAIL_DIR, f"{index}.{url[-3:]}"))
+            if not DRY_RUN:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    with open(file_path, "wb") as file:
+                        print(f"[Debug] Downloading thumbnail {file_path}")
+                        file.write(response.content)
+            thumbnail_paths.append(file_path)
+            index += 1
+    except Exception as e:
+        print(e)
+
+    print(f"[Debug] Thumbnail paths: {thumbnail_paths}")
+    return thumbnail_paths
+
+
+def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]]:
+    print(f"[Log] Getting playlist: {playlist_url}")
+    command = f"\"{YTDLP_PATH}\" --flat-playlist --print title --dump-single-json {playlist_url} "
+    print(f"[Debug] Executing command {command}")
 
     raw_playlist = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("unicode_escape")
     raw_playlist = raw_playlist.splitlines()
+    print(f"[Debug] Command results {raw_playlist}")
 
-    playlist = []
+    playlist_tracks = []
     playlist_title = ""
     channel_name = ""
+    thumbnail_paths = []
     if len(raw_playlist) > 0:
         json_info = raw_playlist.pop(len(raw_playlist) - 1)
+        print(f"[Debug] {json_info}")
 
-        for i in range(1, len(raw_playlist), 2):
-            playlist.append(raw_playlist[i])
+        for i in range(0, len(raw_playlist)):
+            playlist_tracks.append(raw_playlist[i])
 
         try:
             # correct_invalid_json(json_info)
-            print(f"[Debug] {json_info}")
             json_dump = json.loads(json_info)
             playlist_title = json_dump["title"]
             channel_name = json_dump["channel"]
+            thumbnail_urls = [json_dump["thumbnails"][-1]["url"].split("?")[0]]
+            for entry in json_dump["entries"]:
+                thumbnail_urls.append(entry["thumbnails"][-1]["url"].split("?")[0])
+            thumbnail_paths = download_thumbnails(playlist_title, thumbnail_urls)
         except json.decoder.JSONDecodeError:
             print("[Error] Invalid json obtained from playlist page.")
     else:
         print("[Error] Playlist is empty")
 
-    return playlist, playlist_title, channel_name
+    return playlist_tracks, playlist_title.strip(), channel_name.strip(), thumbnail_paths
 
 
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
@@ -209,4 +242,13 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
             metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[1][0]), vorbis_comments)
         else:
             print(f"[Error] Path is not a file: {filepath}")
+
+        try:
+            for root, dirs, files in os.walk(THUMBNAIL_DIR):
+                for file in files:
+                    r_path = os.path.join(root, file)
+                    print(f"[Debug] Removing {r_path}")
+                    os.remove(r_path)
+        except Exception as e:
+            print(f"[Error] Failed removing thumbnails: {e}")
     print("[Log] Ripping complete")
