@@ -2,6 +2,7 @@ import base64
 
 from PIL import Image
 from mutagen import MutagenError
+# noinspection PyProtectedMember
 from mutagen.flac import Picture
 from mutagen.oggvorbis import OggVorbis
 

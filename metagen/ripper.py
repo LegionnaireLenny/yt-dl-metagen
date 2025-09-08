@@ -12,11 +12,11 @@ import metanums
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 CURR_DIR = path.dirname(path.realpath(__file__))
 
-YTDLP_PATH = path.join(CURR_DIR, "..\\bin\\yt-dlp.exe")
-FFMPEG_PATH = path.join(CURR_DIR, "..\\bin\\ffmpeg.exe")
-FFPROBE_PATH = path.join(CURR_DIR, "..\\bin\\ffprobe.exe")
+YTDLP_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\yt-dlp.exe"))
+FFMPEG_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\ffmpeg.exe"))
+FFPROBE_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\ffprobe.exe"))
 
-MEDIA_DIR = path.join(CURR_DIR, "..\\media")
+MEDIA_DIR = path.realpath(path.join(CURR_DIR, "..\\media"))
 AUDIO_DIR = path.join(MEDIA_DIR, "audio")
 THUMBNAIL_DIR = path.join(MEDIA_DIR, "thumbnails")
 
@@ -25,7 +25,7 @@ FILENAME_ARGS = "--restrict-filenames"
 OPTIONS = "--abort-on-error"
 SIM_ARGS = "-s --get-filename"
 
-CLEAR_ON_FAILED_DOWNLOAD = True
+CLEAR_ON_FAILED_DOWNLOAD = False
 DRY_RUN = False
 
 
@@ -128,7 +128,13 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
     print(f"[Debug] Executing command {command}")
 
     raw_playlist = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("unicode_escape")
+
+    if raw_playlist.strip() == "null" or raw_playlist.strip() == "":
+        print("[Error] Failed to get playlist")
+        return [], "", "", []
+
     raw_playlist = raw_playlist.splitlines()
+
     print(f"[Debug] Command results {raw_playlist}")
 
     playlist_tracks = []
@@ -137,7 +143,7 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
     thumbnail_paths = []
     if len(raw_playlist) > 0:
         json_info = raw_playlist.pop(len(raw_playlist) - 1)
-        print(f"[Debug] {json_info}")
+        print(f"[Debug] Json data: {json_info}")
 
         for i in range(0, len(raw_playlist)):
             playlist_tracks.append(raw_playlist[i])
@@ -170,6 +176,10 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     :param vorbis_comments: (dict) Metadata object from cache.py
     :return:
     """
+    if not video_list.items():
+        print("[Error] Video list is empty.")
+        return
+
     log = f"[Log] url: {url}\n"
 
     artist = ""

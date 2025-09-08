@@ -1,3 +1,4 @@
+# noinspection PyProtectedMember
 from kivy.properties import colormap
 from kivy.utils import rgba
 
@@ -57,5 +58,13 @@ color_scheme = {
     "scrollbar_inactive": colormap["green"],
     # Window colors
     "window_background": colormap["peachpuff"],
-    "window_title_bar": colormap["peachpuff"],
+    "title_bar_background": rgba(85,85, 76, 255),
+    # Title bar previous action button
+    "title_bar_action_previous_text": colormap["white"],
+    # Title bar minimize button
+    "title_bar_minimize_button_background": colormap["beige"],
+    # Title bar maximize button
+    "title_bar_maximize_button_background": colormap["beige"],
+    # Title bar close button
+    "title_bar_close_button_background": colormap["beige"],
 }

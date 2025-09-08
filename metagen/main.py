@@ -1,14 +1,17 @@
 from typing import List
+from urllib.parse import urlparse
 
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.effects.scroll import ScrollEffect
 # noinspection PyProtectedMember
 from kivy.properties import colormap
+from kivy.uix.actionbar import ActionBar, ActionPrevious, ActionButton, ActionView, ActionOverflow
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.dropdown import DropDown
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
@@ -16,9 +19,70 @@ from kivy.uix.widget import Widget
 
 import ripper
 from metanums import VorbisComments
-from ui_themes import color_scheme
+from ui_themes import border_themes, color_scheme
 
 testing_url = ""
+
+
+class TitleBar(ActionBar):
+    def __init__(self):
+        super().__init__()
+        self.size_hint_y = None
+        self.height = 35
+        self.background_image = ""
+        self.background_color = color_scheme["title_bar_background"]
+        self.maximized = False
+
+        self.view = ActionView()
+        self.previous_action = ActionPrevious(title="Metagen",
+                                              app_icon="icons\icon_title_bar.png",
+                                              app_icon_height = 35,
+                                              app_icon_width = 35,
+                                              with_previous=False,
+                                              color=color_scheme["title_bar_action_previous_text"])
+
+        self.minimize_button = ActionButton(width=30,
+                                            icon="icons\icon_underline.png",
+                                            background_color=color_scheme["title_bar_minimize_button_background"],
+                                            border=border_themes["border_thin"],
+                                            on_release=self.minimize_app)
+        self.minimize_button.draggable = False
+
+        self.maximize_button = ActionButton(width=30,
+                                            icon="icons\icon_square.png",
+                                            background_color=color_scheme["title_bar_maximize_button_background"],
+                                            border=border_themes["border_thin"],
+                                            on_release=self.maximize_app)
+        self.maximize_button.draggable = False
+
+        self.close_button = ActionButton(width=30,
+                                         icon="icons\icon_x.png",
+                                         background_color=color_scheme["title_bar_close_button_background"],
+                                         border=border_themes["border_thin"],
+                                         on_release=self.close_app)
+        self.close_button.draggable = False
+
+
+        self.view.add_widget(self.previous_action)
+        self.view.add_widget(self.minimize_button)
+        self.view.add_widget(self.maximize_button)
+        self.view.add_widget(self.close_button)
+        self.add_widget(self.view)
+
+    def minimize_app(self, instance):
+        Window.minimize()
+
+    def close_app(self, instance):
+        Window.close()
+
+    def maximize_app(self, instance):
+        if self.maximized:
+            Window.restore()
+            self.maximized = False
+        else:
+            Window.maximize()
+            self.maximized = True
+
 
 class UrlInput(BoxLayout):
     def __init__(self, fetch, url=""):
@@ -188,35 +252,30 @@ class ScrollStack(ScrollView):
 class MainGui(BoxLayout):
     def __init__(self):
         super().__init__()
-        Window.clearcolor = colormap["peachpuff"]
-        Window.minimum_width = 480
-        Window.minimum_height = 320
-        self.padding = 5
-        self.spacing = 3
         self.orientation = "vertical"
 
-        # TODO Make a custom title bar
-        # Window.custom_titlebar = True
-        # Window.set_custom_titlebar(CustomTitleBar())
+        Window.clearcolor = color_scheme["window_background"]
+        Window.minimum_width = 480
+        Window.minimum_height = 320
+        Window.custom_titlebar = True
+
+        self.title_bar = TitleBar()
+        self.add_widget(self.title_bar)
+
+        if Window.set_custom_titlebar(self.title_bar):
+            print("[Info] Titlebar set successfully")
+        else:
+            print("[Error] Titlebar set failed")
 
         # TODO Add a panel that shows logs
-
+        self.inner_layout = BoxLayout(orientation="vertical", padding=5, spacing=3)
         self.url_input = UrlInput(self.load_playlist, testing_url)
-        self.add_widget(self.url_input)
-
         self.playlist = ScrollStack()
-        self.add_widget(self.playlist)
-
         self.metadata_box = BoxLayout(orientation="horizontal",
                                       spacing=3,
                                       size_hint_y=None,
                                       height=100)
         self.metadata_input = StackLayout(size_hint=(0.7, None), spacing=4)
-        self.metadata_input.add_widget(MetadataInput(VorbisComments.ARTIST))
-        self.metadata_input.add_widget(MetadataInput(VorbisComments.ALBUM))
-        self.metadata_input.add_widget(MetadataInput(VorbisComments.GENRE))
-        self.metadata_box.add_widget(self.metadata_input)
-
         self.dropdown = DropDown(scroll_wheel_distance=80)
         self.dropdown.bind(on_select=lambda x,y: self.set_cover_art(y))
         self.cover_art_button = Button(text="Cover Art",
@@ -227,9 +286,6 @@ class MainGui(BoxLayout):
                                        border=color_scheme["cover_art_button_border"],
                                        color=color_scheme["cover_art_button_text"],
                                        on_press=self.dropdown.open)
-        self.metadata_box.add_widget(self.cover_art_button)
-        self.add_widget(self.metadata_box)
-
         self.rip_button = Button(text="Rip playlist",
                                  size_hint_y=None,
                                  height=50,
@@ -237,7 +293,17 @@ class MainGui(BoxLayout):
                                  border=color_scheme["rip_button_border"],
                                  color=color_scheme["rip_button_text"])
         self.rip_button.bind(on_press=self.rip_playlist)
-        self.add_widget(self.rip_button)
+
+        self.add_widget(self.inner_layout)
+        self.inner_layout.add_widget(self.url_input)
+        self.inner_layout.add_widget(self.playlist)
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.ARTIST))
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.ALBUM))
+        self.metadata_input.add_widget(MetadataInput(VorbisComments.GENRE))
+        self.metadata_box.add_widget(self.metadata_input)
+        self.metadata_box.add_widget(self.cover_art_button)
+        self.inner_layout.add_widget(self.metadata_box)
+        self.inner_layout.add_widget(self.rip_button)
 
     def set_cover_art(self, thumbnail):
         self.cover_art_button.background_normal = thumbnail
@@ -256,7 +322,7 @@ class MainGui(BoxLayout):
 
     def load_playlist(self, url):
         try:
-            if url != "":
+            if urlparse(url).netloc != "":
                 self.playlist.clear()
                 playlist_info = ripper.get_playlist_info(url)
 
@@ -277,9 +343,9 @@ class MainGui(BoxLayout):
 
                     self.populate_dropdown(playlist_info[3])
                 else:
-                    print("[Error] Invalid playlist information returned")
+                    print("[Error] Empty playlist received")
             else:
-                print("[Error] No URL entered")
+                print("[Error] Invalid URL entered")
         except Exception as e:
             print(f"[Error] Error loading playlist information.\n{e}")
 
@@ -287,7 +353,7 @@ class MainGui(BoxLayout):
     def rip_playlist(self, instance):
         url = self.url_input.get_url()
 
-        if url != "":
+        if urlparse(url).netloc != "":
             selected_videos = {}
             for item in self.playlist.get_contents():
                 if item.is_selected():
@@ -306,7 +372,7 @@ class MainGui(BoxLayout):
                 metadata[VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
             ripper.rip_selected_videos(url, selected_videos, metadata)
         else:
-            print("[Error] No playlist entered")
+            print("[Error] Invalid URL entered")
 
 
 class MetagenApp(App):
