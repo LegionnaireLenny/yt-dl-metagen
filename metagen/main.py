@@ -35,28 +35,28 @@ class TitleBar(ActionBar):
 
         self.view = ActionView()
         self.previous_action = ActionPrevious(title="Metagen",
-                                              app_icon="icons\icon_title_bar.png",
+                                              app_icon="icons\\icon_title_bar.png",
                                               app_icon_height = 35,
                                               app_icon_width = 35,
                                               with_previous=False,
                                               color=color_scheme["title_bar_action_previous_text"])
 
         self.minimize_button = ActionButton(width=30,
-                                            icon="icons\icon_underline.png",
+                                            icon="icons\\icon_underline.png",
                                             background_color=color_scheme["title_bar_minimize_button_background"],
                                             border=border_themes["border_thin"],
                                             on_release=self.minimize_app)
         self.minimize_button.draggable = False
 
         self.maximize_button = ActionButton(width=30,
-                                            icon="icons\icon_square.png",
+                                            icon="icons\\icon_square.png",
                                             background_color=color_scheme["title_bar_maximize_button_background"],
                                             border=border_themes["border_thin"],
                                             on_release=self.maximize_app)
         self.maximize_button.draggable = False
 
         self.close_button = ActionButton(width=30,
-                                         icon="icons\icon_x.png",
+                                         icon="icons\\icon_x.png",
                                          background_color=color_scheme["title_bar_close_button_background"],
                                          border=border_themes["border_thin"],
                                          on_release=self.close_app)
@@ -262,10 +262,9 @@ class MainGui(BoxLayout):
         self.title_bar = TitleBar()
         self.add_widget(self.title_bar)
 
-        if Window.set_custom_titlebar(self.title_bar):
-            print("[Info] Titlebar set successfully")
-        else:
-            print("[Error] Titlebar set failed")
+        if not Window.set_custom_titlebar(self.title_bar):
+            print("[Error] Titlebar set failed. Exiting program.")
+            Window.stop()
 
         # TODO Add a panel that shows logs
         self.inner_layout = BoxLayout(orientation="vertical", padding=5, spacing=3)
@@ -376,6 +375,7 @@ class MainGui(BoxLayout):
 
 
 class MetagenApp(App):
+    icon = "icons\\icon_title_bar.png"
     def build(self):
         return MainGui()
 

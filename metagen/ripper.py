@@ -3,6 +3,7 @@ import re
 import subprocess
 from os import path, replace, walk, remove, makedirs
 from typing import Tuple, List
+from yt_dlp import YoutubeDL
 
 import requests
 
@@ -43,26 +44,6 @@ def convert_invalid_characters(string: str) -> str:
         string = string.strip()
 
     return string
-
-
-def correct_invalid_json(invalid_json: str) -> str:
-    print(invalid_json)
-    pattern_title = re.compile(fr"\"title\":\s*\"(.*?)\"(,|\s*}})")
-    match_title = re.search(pattern_title, invalid_json)
-    # https://www.youtube.com/playlist?list=OLAK5uy_mFNUV0q9q1Fu5Q0J3zsQ81lYiV_hV_fcM
-
-    if match_title:
-        validated_json = ""
-        for match in match_title.groups():
-            # matched_text = match
-            replacement_text = re.sub(match, re.sub("\"", "", match_title.group(1)), match)
-            # replacement_text = re.sub(match, re.sub("\"", "", match_title.group(1)), match)
-            # validated_json += re.sub()
-
-            print(validated_json)
-        return validated_json
-    else:
-        return invalid_json
 
 
 def fix_title(artist, filename):
@@ -123,46 +104,34 @@ def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[
 
 # TODO make async
 def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]]:
-    print(f"[Log] Getting playlist: {playlist_url}")
-    command = f"\"{YTDLP_PATH}\" --flat-playlist --print title --dump-single-json {playlist_url} "
-    print(f"[Debug] Executing command {command}")
-
-    raw_playlist = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("unicode_escape")
-
-    if raw_playlist.strip() == "null" or raw_playlist.strip() == "":
-        print("[Error] Failed to get playlist")
-        return [], "", "", []
-
-    raw_playlist = raw_playlist.splitlines()
-
-    print(f"[Debug] Command results {raw_playlist}")
-
-    playlist_tracks = []
-    playlist_title = ""
-    channel_name = ""
-    thumbnail_paths = []
-    if len(raw_playlist) > 0:
-        json_info = raw_playlist.pop(len(raw_playlist) - 1)
+    ydl_opts = {
+        'extract_flat': True,
+        'no_warnings': True
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        print(f"[Log] Getting playlist: {playlist_url}")
+        info = ydl.extract_info(playlist_url, download=False)
+        json_info = json.loads(json.dumps(ydl.sanitize_info(info)))
         print(f"[Debug] Json data: {json_info}")
 
-        for i in range(0, len(raw_playlist)):
-            playlist_tracks.append(raw_playlist[i])
-
         try:
-            # correct_invalid_json(json_info)
-            json_dump = json.loads(json_info)
-            playlist_title = json_dump["title"]
-            channel_name = json_dump["channel"]
-            thumbnail_urls = [json_dump["thumbnails"][-1]["url"].split("?")[0]]
-            for entry in json_dump["entries"]:
-                thumbnail_urls.append(entry["thumbnails"][-1]["url"].split("?")[0])
+            playlist_tracks = []
+            playlist_title = json_info["title"]
+            channel_name = json_info["channel"]
+            thumbnail_urls = [json_info["thumbnails"][-1]["url"].split("?")[0]] # playlist thumbnail
+            for entry in json_info["entries"]:
+                playlist_tracks.append(entry["title"])
+                thumbnail_urls.append(entry["thumbnails"][-1]["url"].split("?")[0]) # track thumbnail
             thumbnail_paths = download_thumbnails(playlist_title, thumbnail_urls)
+
+            return playlist_tracks, playlist_title.strip(), channel_name.strip(), thumbnail_paths
         except json.decoder.JSONDecodeError:
             print("[Error] Invalid json obtained from playlist page.")
-    else:
-        print("[Error] Playlist is empty")
+        except Exception as e:
+            print(f"[Error] Failed to get playlist info {e}")
 
-    return playlist_tracks, playlist_title.strip(), channel_name.strip(), thumbnail_paths
+        return [], "", "", []
+
 
 # TODO make async
 def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
