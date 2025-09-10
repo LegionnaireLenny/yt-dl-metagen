@@ -4,14 +4,11 @@ from urllib.parse import urlparse
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.effects.scroll import ScrollEffect
-# noinspection PyProtectedMember
-from kivy.properties import colormap
-from kivy.uix.actionbar import ActionBar, ActionPrevious, ActionButton, ActionView, ActionOverflow
+from kivy.uix.actionbar import ActionBar, ActionPrevious, ActionButton, ActionView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.dropdown import DropDown
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput

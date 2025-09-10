@@ -1,11 +1,11 @@
 import json
 import re
-import subprocess
-from os import path, replace, walk, remove, makedirs
+from os import replace, path, makedirs
 from typing import Tuple, List
-from yt_dlp import YoutubeDL
 
 import requests
+from yt_dlp import YoutubeDL
+from yt_dlp.utils import sanitize_filename
 
 import metagen
 import metanums
@@ -13,21 +13,14 @@ import metanums
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 CURR_DIR = path.dirname(path.realpath(__file__))
 
-YTDLP_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\yt-dlp.exe"))
 FFMPEG_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\ffmpeg.exe"))
-FFPROBE_PATH = path.realpath(path.join(CURR_DIR, "..\\bin\\ffprobe.exe"))
 
 MEDIA_DIR = path.realpath(path.join(CURR_DIR, "..\\media"))
 AUDIO_DIR = path.join(MEDIA_DIR, "audio")
 THUMBNAIL_DIR = path.join(MEDIA_DIR, "thumbnails")
 
-AUDIO_ARGS = "--extract-audio --audio-format vorbis --audio-quality 0"
-FILENAME_ARGS = "--restrict-filenames"
-OPTIONS = "--abort-on-error"
-SIM_ARGS = "-s --get-filename"
-
-CLEAR_ON_FAILED_DOWNLOAD = False
 DRY_RUN = False
+SKIP_THUMBNAILS = False
 
 
 def convert_invalid_characters(string: str) -> str:
@@ -46,34 +39,6 @@ def convert_invalid_characters(string: str) -> str:
     return string
 
 
-def fix_title(artist, filename):
-    print(f"[Log] Original filename: {filename}")
-    if artist != "":
-        # pattern_open_paren = re.compile(r"\s*(\(|\[)")
-        # pattern_no_close_paren = re.compile(r"[^()|\])]*")
-        # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^()|\])]*(Video|Audio|Lyric|Official)[^()|\])]*(\)|]))")
-        # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(-\s*|\sx\s))")
-
-        # temp_artist = artist.replace(" ", "_")
-        pattern_starting_artist = re.compile(fr"(^.*?{artist}[^-]*(- *| x ))", re.IGNORECASE)
-        # pattern_starting_artist = re.compile(fr"(^[^-]*({artist})[^-]*(- *| x ))")
-        match_starting_artist = re.search(pattern_starting_artist, filename)
-
-        if match_starting_artist is not None:
-            # for group in match_starting_artist.groups():
-            #     print(group)
-            filename = re.sub(match_starting_artist.group(1), "", filename)
-            print(f"[Log] After removing artist name: {filename}")
-
-    pattern_lyric_video = re.compile(r"\s*(\(|\[)?(Official|Lyric)( Audio| Music| Lyric)?( Video| Audio)(\)|\])?", re.IGNORECASE)
-    # pattern_lyric_video = re.compile(r"(\s*(\(|\[)[^(\)|\])]*(Video|Audio|Lyric|Official)[^(\)|\])]*(\)|\]))")
-    match_lyric_video = re.search(pattern_lyric_video, filename)
-    if match_lyric_video is not None:
-        filename = filename.replace(match_lyric_video.group(), "")
-        print(f"[Log] After removing video type: {filename}")
-    return filename
-
-
 # TODO make async
 def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[str]:
     print(f"[Debug] Urls {thumbnail_urls}")
@@ -88,7 +53,7 @@ def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[
             if not path.exists(directory):
                 makedirs(directory)
 
-            if not DRY_RUN:
+            if not SKIP_THUMBNAILS:
                 response = requests.get(url)
                 if response.status_code == 200:
                     with open(file_path, "wb") as file:
@@ -102,11 +67,12 @@ def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[
     print(f"[Debug] Thumbnail paths: {thumbnail_paths}")
     return thumbnail_paths
 
+
 # TODO make async
 def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]]:
     ydl_opts = {
-        'extract_flat': True,
-        'no_warnings': True
+        "extract_flat": True,
+        "no_warnings": True
     }
     with YoutubeDL(ydl_opts) as ydl:
         print(f"[Log] Getting playlist: {playlist_url}")
@@ -149,92 +115,61 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
         print("[Error] Video list is empty.")
         return
 
-    log = f"[Log] url: {url}\n"
+    print(f"[Log] url: {url}")
 
     artist = ""
     album = ""
     for comment in vorbis_comments:
-        log += f"[Log] {comment}: {vorbis_comments[comment]}\n"
+        print(f"[Log] {comment}: {vorbis_comments[comment]}")
 
         if comment == metanums.VorbisComments.ARTIST.value:
             artist = convert_invalid_characters(vorbis_comments[comment])
         if comment == metanums.VorbisComments.ALBUM.value:
             album = convert_invalid_characters(vorbis_comments[comment])
 
-    print(log)
-
-    playlist_items = "--playlist-items "
+    download_dir = AUDIO_DIR
+    if artist != "":
+        download_dir = path.join(download_dir, artist)
+    if album != "":
+        download_dir = path.join(download_dir, album)
 
     print("[Log] Pending Playlist")
+    _playlist_items = ""
     for item in video_list.items():
         print(f"[Log] {item[1][0]}. {item[1][1]}")
-        playlist_items += f"{item[0]},"
+        _playlist_items += f"{item[0]},"
 
-    playlist_items = playlist_items[:-1]
+    ydl_opts = {
+        "format": "vorbis/bestaudio/best",
+        "playlist_items": _playlist_items[:-1],
+        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "vorbis"}],
+        "outtmpl": {"default": path.join(download_dir, "%(playlist_index)s.%(ext)s")},
+        "ffmpeg_location": FFMPEG_PATH,
+        "keepvideo": False,
+        "no_warnings": True,
+        "simulate": True if DRY_RUN else False
+    }
+    with YoutubeDL(ydl_opts) as ydl:
+        error_code = ydl.download(url)
 
-    download_dir = f"{AUDIO_DIR}\\"
-    if artist != "":
-        download_dir += f"{artist}\\"
-    if album != "":
-        download_dir += f"{album}\\"
-
-    output_template = f"-o \"{download_dir}%(playlist_index)s.%(ext)s\""
-    if DRY_RUN:
-        command = f"\"{YTDLP_PATH}\" {playlist_items} {AUDIO_ARGS} {SIM_ARGS} {OPTIONS} {output_template} {url}"
-    else:
-        command = f"\"{YTDLP_PATH}\" {playlist_items} {AUDIO_ARGS} {OPTIONS} {output_template} {url}"
-    print(f"[Log] {command}")
-
-    result = subprocess.run(command, stderr=subprocess.PIPE).stderr.decode("unicode_escape")
+    if error_code != 0:
+        print(f"[Error] Download failed, aborting.")
+        return
 
     if DRY_RUN:
         return
 
-    if result != "":
-        print(f"[Error] Download failed. {result}\n[Error] Aborting.")
-
-        if CLEAR_ON_FAILED_DOWNLOAD:
-            print("[Debug] Removing downloaded files")
-            for root, dirs, files in walk(download_dir):
-                for file in files:
-                    r_path = path.join(root, file)
-                    print(f"[Debug] Removing {r_path}")
-                    remove(r_path)
-        return
-
-    filename_padding = len(f"{(list(video_list.keys())[-1])}")
-    for item in video_list.items():
-        indexed_filename = f"{str(item[0]).zfill(filename_padding)}.ogg"
-        indexed_filepath = path.join(download_dir, indexed_filename)
-        filename = convert_invalid_characters(f"{item[1][1]}.ogg")
-        filepath = path.join(download_dir, filename)
+    filename_padding = len(f"{max({int(k):v for k,v in video_list.items()})}")
+    for video in video_list.items():
+        download_path = path.join(download_dir, f"{str(video[0]).zfill(filename_padding)}.ogg")
+        title = f"{video[1][1]}.ogg"
+        new_path = path.join(download_dir, sanitize_filename(title, restricted=True))
 
         try:
-            replace(indexed_filepath, filepath)
-        except FileNotFoundError:
-            print(f"[Error] Could not replace file: {indexed_filepath}")
+            replace(download_path, new_path)
+            metagen.add_vorbis_metadata(new_path, title[:-4], str(video[1][0]), vorbis_comments)
+        except FileNotFoundError as e:
+            print(f"[Error] Download path: {download_path}\n\t\tNew Path: {new_path}\n\t\t{e}")
 
-        # filename = fix_title(artist, filename)
 
-        original_filepath = filepath
-        filepath = path.join(download_dir, filename)
-
-        try:
-            replace(original_filepath, filepath)
-        except FileNotFoundError:
-            print(f"[Error] Could not find file file: {original_filepath}")
-
-        if path.isfile(filepath):
-            metagen.add_vorbis_metadata(filepath, filename[:-4], str(item[1][0]), vorbis_comments)
-        else:
-            print(f"[Error] Path is not a file: {filepath}")
-
-        # try:
-        #     for root, dirs, files in os.walk(THUMBNAIL_DIR):
-        #         for file in files:
-        #             r_path = os.path.join(root, file)
-        #             print(f"[Debug] Removing {r_path}")
-        #             os.remove(r_path)
-        # except Exception as e:
-        #     print(f"[Error] Failed removing thumbnails: {e}")
     print("[Log] Ripping complete")
