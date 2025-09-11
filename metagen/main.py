@@ -16,7 +16,7 @@ from kivy.uix.widget import Widget
 
 import downloader
 from metanums import VorbisComments
-from ui_themes import border_themes, color_scheme
+from ui_themes import border_themes, ui_theme
 
 testing_url = ""
 
@@ -27,7 +27,7 @@ class TitleBar(ActionBar):
         self.size_hint_y = None
         self.height = 35
         self.background_image = ""
-        self.background_color = color_scheme["title_bar_background"]
+        self.background_color = ui_theme["title_bar_background"]
         self.maximized = False
 
         self.view = ActionView()
@@ -36,25 +36,25 @@ class TitleBar(ActionBar):
                                               app_icon_height = 35,
                                               app_icon_width = 35,
                                               with_previous=False,
-                                              color=color_scheme["title_bar_action_previous_text"])
+                                              color=ui_theme["title_bar_action_previous_text"])
 
         self.minimize_button = ActionButton(width=30,
                                             icon="icons\\icon_underline.png",
-                                            background_color=color_scheme["title_bar_minimize_button_background"],
+                                            background_color=ui_theme["title_bar_minimize_button_background"],
                                             border=border_themes["border_thin"],
                                             on_release=self.minimize_app)
         self.minimize_button.draggable = False
 
         self.maximize_button = ActionButton(width=30,
                                             icon="icons\\icon_square.png",
-                                            background_color=color_scheme["title_bar_maximize_button_background"],
+                                            background_color=ui_theme["title_bar_maximize_button_background"],
                                             border=border_themes["border_thin"],
                                             on_release=self.maximize_app)
         self.maximize_button.draggable = False
 
         self.close_button = ActionButton(width=30,
                                          icon="icons\\icon_x.png",
-                                         background_color=color_scheme["title_bar_close_button_background"],
+                                         background_color=ui_theme["title_bar_close_button_background"],
                                          border=border_themes["border_thin"],
                                          on_release=self.close_app)
         self.close_button.draggable = False
@@ -92,19 +92,19 @@ class UrlInput(BoxLayout):
         self.button = Button(text="Fetch",
                              size_hint_x=None,
                              width=60,
-                             background_color=color_scheme["url_button_background"],
-                             border=color_scheme["url_button_border"],
-                             color=color_scheme["url_button_text"],
+                             background_color=ui_theme["url_button_background"],
+                             border=ui_theme["url_button_border"],
+                             color=ui_theme["url_button_text"],
                              on_release=self.fetch_playlist)
         self.add_widget(self.button)
 
         self.input = TextInput(text=url,
                                hint_text="Enter playlist URL here",
-                               background_color=color_scheme["url_text_background"],
-                               border=color_scheme["url_text_border"],
-                               foreground_color=color_scheme["url_text_text"],
-                               hint_text_color=color_scheme["url_text_hint_text"],
-                               selection_color=color_scheme["url_text_selection"],
+                               background_color=ui_theme["url_text_background"],
+                               border=ui_theme["url_text_border"],
+                               foreground_color=ui_theme["url_text_text"],
+                               hint_text_color=ui_theme["url_text_hint_text"],
+                               selection_color=ui_theme["url_text_selection"],
                                multiline=False,
                                write_tab=False,
                                on_text_validate=self.fetch_playlist)
@@ -129,19 +129,19 @@ class MetadataInput(BoxLayout):
         self.button = Button(text=self.tag.name,
                              size_hint_x=None,
                              width=80,
-                             background_color=color_scheme["metadata_button_background"],
-                             border=color_scheme["metadata_button_border"],
-                             color=color_scheme["metadata_button_text"])
+                             background_color=ui_theme["metadata_button_background"],
+                             border=ui_theme["metadata_button_border"],
+                             color=ui_theme["metadata_button_text"])
         self.button.background_down = self.button.background_normal
         self.add_widget(self.button)
 
         self.input = TextInput(text="",
                                hint_text=f"Enter {self.tag.value} here",
-                               background_color=color_scheme["metadata_text_background"],
-                               border=color_scheme["metadata_text_border"],
-                               foreground_color=color_scheme["metadata_text_text"],
-                               hint_text_color=color_scheme["metadata_text_hint_text"],
-                               selection_color=color_scheme["metadata_text_selection"],
+                               background_color=ui_theme["metadata_text_background"],
+                               border=ui_theme["metadata_text_border"],
+                               foreground_color=ui_theme["metadata_text_text"],
+                               hint_text_color=ui_theme["metadata_text_hint_text"],
+                               selection_color=ui_theme["metadata_text_selection"],
                                multiline=False,
                                write_tab=False)
         self.add_widget(self.input)
@@ -171,7 +171,7 @@ class PlaylistItem(BoxLayout):
         self.checkbox = CheckBox(active=True,
                                  size_hint_x=None,
                                  width=40,
-                                 color= color_scheme["playlist_item_checkbox"])
+                                 color= ui_theme["playlist_item_checkbox"])
         self.add_widget(self.checkbox)
 
         self.tracknumber = TextInput(text=f"{index}",
@@ -181,11 +181,11 @@ class PlaylistItem(BoxLayout):
                                      width=40,
                                      halign="center",
                                      padding=self.text_center_padding,
-                                     background_color=color_scheme["playlist_item_tracknumber_background"],
-                                     border=color_scheme["playlist_item_tracknumber_border"],
-                                     foreground_color=color_scheme["playlist_item_tracknumber_text"],
-                                     hint_text_color=color_scheme["playlist_item_tracknumber_hint_text"],
-                                     selection_color=color_scheme["playlist_item_tracknumber_selection"],
+                                     background_color=ui_theme["playlist_item_tracknumber_background"],
+                                     border=ui_theme["playlist_item_tracknumber_border"],
+                                     foreground_color=ui_theme["playlist_item_tracknumber_text"],
+                                     hint_text_color=ui_theme["playlist_item_tracknumber_hint_text"],
+                                     selection_color=ui_theme["playlist_item_tracknumber_selection"],
                                      multiline=False,
                                      write_tab=False)
         self.add_widget(self.tracknumber)
@@ -193,11 +193,11 @@ class PlaylistItem(BoxLayout):
         self.title = TextInput(text=f"{label_text}",
                                hint_text=f"{label_text}",
                                padding=self.text_left_padding,
-                               background_color=color_scheme["playlist_item_title_background"],
-                               border=color_scheme["playlist_item_title_border"],
-                               foreground_color=color_scheme["playlist_item_title_text"],
-                               hint_text_color=color_scheme["playlist_item_title_hint_text"],
-                               selection_color=color_scheme["playlist_item_title_selection"],
+                               background_color=ui_theme["playlist_item_title_background"],
+                               border=ui_theme["playlist_item_title_border"],
+                               foreground_color=ui_theme["playlist_item_title_text"],
+                               hint_text_color=ui_theme["playlist_item_title_hint_text"],
+                               selection_color=ui_theme["playlist_item_title_selection"],
                                multiline=False,
                                write_tab=False)
         self.add_widget(self.title)
@@ -229,8 +229,8 @@ class ScrollStack(ScrollView):
         self.effect_cls = ScrollEffect
         self.bar_width = 3
         self.bar_margin = -1
-        self.bar_color = color_scheme["scrollbar_active"]
-        self.bar_inactive_color = color_scheme["scrollbar_inactive"]
+        self.bar_color = ui_theme["scrollbar_active"]
+        self.bar_inactive_color = ui_theme["scrollbar_inactive"]
 
         self.stack = StackLayout(size_hint_y=None, spacing= 2)
         self.stack.bind(minimum_height=self.stack.setter("height"))
@@ -251,7 +251,7 @@ class MainGui(BoxLayout):
         super().__init__()
         self.orientation = "vertical"
 
-        Window.clearcolor = color_scheme["window_background"]
+        Window.clearcolor = ui_theme["window_background"]
         Window.minimum_width = 480
         Window.minimum_height = 320
         Window.custom_titlebar = True
@@ -278,16 +278,16 @@ class MainGui(BoxLayout):
                                        size_hint_max=(128,128),
                                        size_hint_min=(64,64),
                                        size_hint=(0.3, None),
-                                       background_color=color_scheme["cover_art_button_background"],
-                                       border=color_scheme["cover_art_button_border"],
-                                       color=color_scheme["cover_art_button_text"],
+                                       background_color=ui_theme["cover_art_button_background"],
+                                       border=ui_theme["cover_art_button_border"],
+                                       color=ui_theme["cover_art_button_text"],
                                        on_press=self.dropdown.open)
         self.download_button = Button(text="Download playlist",
                                       size_hint_y=None,
                                       height=50,
-                                      background_color=color_scheme["download_button_background"],
-                                      border=color_scheme["download_button_border"],
-                                      color=color_scheme["download_button_text"])
+                                      background_color=ui_theme["download_button_background"],
+                                      border=ui_theme["download_button_border"],
+                                      color=ui_theme["download_button_text"])
         self.download_button.bind(on_press=self.download_playlist)
 
         self.add_widget(self.inner_layout)
@@ -381,5 +381,5 @@ class MetagenApp(App):
 
 
 if __name__ == '__main__':
-    downloader = MetagenApp()
-    downloader.run()
+    metagen = MetagenApp()
+    metagen.run()
