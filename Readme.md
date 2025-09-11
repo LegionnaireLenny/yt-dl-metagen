@@ -1,27 +1,26 @@
 # About
-*yt-dl-metagen* is a simple GUI wrapper for downloading and extracting audio from Youtube playlists using yt-dlp, with
-the option of automatically filling in additional metadata for the downloaded files. Currently, only the Ogg Vorbis (.ogg)
-format is supported.
+*yt-dl-metagen* is a simple GUI wrapper for downloading and extracting audio from Youtube playlists and individual 
+videos using yt-dlp, with the option of automatically filling in additional metadata for the downloaded files. 
+Currently, only the Ogg Vorbis (.ogg) format is supported.
 
 Only supported on Windows.
 
 # Setting up yt-dl-metagen
 
-1. Install Python 3.6 or later
+1. Install Python 3.9 or later
    1. https://www.python.org/
 
 2. Install the mutagen library
    1. https://github.com/quodlibet/mutagen
    2. https://mutagen.readthedocs.io/en/latest/
     
-3. Download yt-dlp.exe
+3. Install the yt-dlp library
    1. https://github.com/yt-dlp/yt-dlp
-   2. You need the executable not the python files
     
 4. Download the Windows executables for ffmpeg
    1. https://ffmpeg.org/download.html
     
-5. Create a _bin_ folder in the project root folder and place _yt-dlp.exe_, _ffmpeg.exe_, and _ffprobe.exe_ in the _bin_ folder 
+5. Create a _bin_ folder in the project root folder and place _ffmpeg.exe_, and _ffprobe.exe_ in the _bin_ folder 
 <pre>
 Example directory structure
 
@@ -29,13 +28,14 @@ yt-dl-metagen
 |
 ├── bin
 │   ├── ffmpeg.exe
-│   ├── ffprobe.exe
-│   └── youtube-dl.exe
+│   └── ffprobe.exe
 └── metagen
+    ├── downloader.py
     ├── main.py
     ├── metagen.py
     ├── metanums.py
-    └── ripper.py
+    ├── ui_themes.py
+    └── util.py
 </pre>
 
 # Running yt-dl-metagen
