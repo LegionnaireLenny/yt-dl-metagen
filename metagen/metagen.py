@@ -1,7 +1,7 @@
 import base64
 
 from PIL import Image
-from mutagen import MutagenError
+from mutagen import MutagenError, id3
 # noinspection PyProtectedMember
 from mutagen.flac import Picture
 from mutagen.oggvorbis import OggVorbis
@@ -23,9 +23,8 @@ def add_vorbis_metadata(filepath, title, tracknumber, vorbis_comments):
 
                 picture = Picture()
                 picture.data = data
-                picture.type = 17
-                picture.desc = u"Cover Art"
-                picture.mime = u"image/jpeg"
+                picture.type = id3.PictureType.COVER_FRONT
+                picture.mime = image.get_format_mimetype()
                 picture.width = image.width
                 picture.height = image.height
                 picture.depth = 24

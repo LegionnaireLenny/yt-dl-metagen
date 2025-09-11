@@ -1,5 +1,4 @@
 import json
-import re
 from os import replace, path, makedirs
 from typing import Tuple, List
 
@@ -9,6 +8,7 @@ from yt_dlp.utils import sanitize_filename
 
 import metagen
 import metanums
+from util import convert_invalid_characters
 
 BASE_DIR = path.dirname(path.dirname(path.abspath(__file__)))
 CURR_DIR = path.dirname(path.realpath(__file__))
@@ -22,33 +22,20 @@ THUMBNAIL_DIR = path.join(MEDIA_DIR, "thumbnails")
 DRY_RUN = False
 SKIP_THUMBNAILS = False
 
-
-def convert_invalid_characters(string: str) -> str:
-    if string is not None:
-        double_quotes = "\""
-        question_mark = r"\?"
-        right_quote = "’"
-        invalid_filename_chars = "[\\/:*<>|]"
-
-        string = re.sub(double_quotes, "", string)
-        string = re.sub(question_mark, " ", string)
-        string = re.sub(right_quote, "'", string)
-        string = re.sub(invalid_filename_chars, "_", string)
-        string = string.strip()
-
-    return string
+__video_type = "none"
 
 
 # TODO make async
-def download_thumbnails(playlist_title: str, thumbnail_urls: List[str]) -> List[str]:
+def download_thumbnails(playlist_title: str, artist_name: str, thumbnail_urls: List[str]) -> List[str]:
     print(f"[Debug] Urls {thumbnail_urls}")
     thumbnail_paths = []
 
     try:
         index = 0
         for url in thumbnail_urls:
-            directory = path.join(THUMBNAIL_DIR, playlist_title)
-            file_path = path.join(directory, f"{index}.{url[-3:]}")
+
+            directory = path.join(THUMBNAIL_DIR, artist_name, playlist_title)
+            file_path = path.join(directory, f"{index}.{url.split(".")[-1]}")
 
             if not path.exists(directory):
                 makedirs(directory)
@@ -75,20 +62,28 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
         "no_warnings": True
     }
     with YoutubeDL(ydl_opts) as ydl:
-        print(f"[Log] Getting playlist: {playlist_url}")
-        info = ydl.extract_info(playlist_url, download=False)
-        json_info = json.loads(json.dumps(ydl.sanitize_info(info)))
-        print(f"[Debug] Json data: {json_info}")
-
         try:
+            print(f"[Log] Getting playlist: {playlist_url}")
+            info = ydl.extract_info(playlist_url, download=False)
+            json_info = json.loads(json.dumps(ydl.sanitize_info(info)))
+            print(f"[Debug] Json data: {json_info}")
+
+            global __video_type
+            __video_type = json_info["_type"]
+
             playlist_tracks = []
-            playlist_title = json_info["title"]
+            playlist_title = ""
             channel_name = json_info["channel"]
-            thumbnail_urls = [json_info["thumbnails"][-1]["url"].split("?")[0]] # playlist thumbnail
-            for entry in json_info["entries"]:
-                playlist_tracks.append(entry["title"])
-                thumbnail_urls.append(entry["thumbnails"][-1]["url"].split("?")[0]) # track thumbnail
-            thumbnail_paths = download_thumbnails(playlist_title, thumbnail_urls)
+            if __video_type == "video":
+                playlist_tracks.append(json_info["title"])
+                thumbnail_urls = [json_info["thumbnail"]]
+            elif __video_type == "playlist":
+                playlist_title = json_info["title"]
+                thumbnail_urls = [json_info["thumbnails"][-1]["url"].split("?")[0]] # playlist thumbnail
+                for entry in json_info["entries"]:
+                    playlist_tracks.append(entry["title"])
+                    thumbnail_urls.append(entry["thumbnails"][-1]["url"].split("?")[0]) # track thumbnail
+            thumbnail_paths = download_thumbnails(playlist_title, channel_name.strip(), thumbnail_urls)
 
             return playlist_tracks, playlist_title.strip(), channel_name.strip(), thumbnail_paths
         except json.decoder.JSONDecodeError:
@@ -100,7 +95,7 @@ def get_playlist_info(playlist_url: str) -> Tuple[List[str], str, str, List[str]
 
 
 # TODO make async
-def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
+def download_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
     """
     :param url: (string) Valid URL
     :param video_list: (dict) Playlist object from cache.py
@@ -115,6 +110,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
         print("[Error] Video list is empty.")
         return
 
+    global __video_type
     print(f"[Log] url: {url}")
 
     artist = ""
@@ -143,7 +139,7 @@ def rip_selected_videos(url: str, video_list: dict, vorbis_comments: dict):
         "format": "vorbis/bestaudio/best",
         "playlist_items": _playlist_items[:-1],
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "vorbis"}],
-        "outtmpl": {"default": path.join(download_dir, "%(playlist_index)s.%(ext)s")},
+        "outtmpl": {"default": path.join(download_dir, "%(playlist_index)s.%(ext)s" if __video_type == "playlist" else "1.%(ext)s")},
         "ffmpeg_location": FFMPEG_PATH,
         "keepvideo": False,
         "no_warnings": True,

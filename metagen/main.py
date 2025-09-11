@@ -282,13 +282,13 @@ class MainGui(BoxLayout):
                                        border=color_scheme["cover_art_button_border"],
                                        color=color_scheme["cover_art_button_text"],
                                        on_press=self.dropdown.open)
-        self.rip_button = Button(text="Rip playlist",
-                                 size_hint_y=None,
-                                 height=50,
-                                 background_color=color_scheme["rip_button_background"],
-                                 border=color_scheme["rip_button_border"],
-                                 color=color_scheme["rip_button_text"])
-        self.rip_button.bind(on_press=self.rip_playlist)
+        self.download_button = Button(text="Download playlist",
+                                      size_hint_y=None,
+                                      height=50,
+                                      background_color=color_scheme["download_button_background"],
+                                      border=color_scheme["download_button_border"],
+                                      color=color_scheme["download_button_text"])
+        self.download_button.bind(on_press=self.download_playlist)
 
         self.add_widget(self.inner_layout)
         self.inner_layout.add_widget(self.url_input)
@@ -299,7 +299,7 @@ class MainGui(BoxLayout):
         self.metadata_box.add_widget(self.metadata_input)
         self.metadata_box.add_widget(self.cover_art_button)
         self.inner_layout.add_widget(self.metadata_box)
-        self.inner_layout.add_widget(self.rip_button)
+        self.inner_layout.add_widget(self.download_button)
 
     def set_cover_art(self, thumbnail):
         self.cover_art_button.background_normal = thumbnail
@@ -315,6 +315,9 @@ class MainGui(BoxLayout):
                             background_down=thumbnail)
             button.bind(on_release=lambda btn: self.dropdown.select(btn.background_normal))
             self.dropdown.add_widget(button)
+
+    def clear_dropdown(self):
+        self.dropdown.clear_widgets()
 
     def load_playlist(self, url):
         try:
@@ -346,7 +349,7 @@ class MainGui(BoxLayout):
             print(f"[Error] Error loading playlist information.\n{e}")
 
     # noinspection PyUnusedLocal
-    def rip_playlist(self, instance):
+    def download_playlist(self, instance):
         url = self.url_input.get_url()
 
         if urlparse(url).netloc != "":
@@ -366,7 +369,7 @@ class MainGui(BoxLayout):
 
             if "thumbnails" in self.cover_art_button.background_normal:
                 metadata[VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
-            ripper.rip_selected_videos(url, selected_videos, metadata)
+            ripper.download_selected_videos(url, selected_videos, metadata)
         else:
             print("[Error] Invalid URL entered")
 

@@ -24,9 +24,9 @@ color_scheme = {
     "cover_art_button_border": border_themes["border_medium"],
     "cover_art_button_text": colormap["beige"],
     # Rip playlist button
-    "rip_button_background": colormap["beige"],
-    "rip_button_border": border_themes["border_medium"],
-    "rip_button_text": colormap["beige"],
+    "download_button_background": colormap["beige"],
+    "download_button_border": border_themes["border_medium"],
+    "download_button_text": colormap["beige"],
     # URL text input
     "url_text_background": colormap["beige"],
     "url_text_border": border_themes["border_medium"],
