@@ -14,7 +14,7 @@ from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
 
-import ripper
+import downloader
 from metanums import VorbisComments
 from ui_themes import border_themes, color_scheme
 
@@ -323,7 +323,7 @@ class MainGui(BoxLayout):
         try:
             if urlparse(url).netloc != "":
                 self.playlist.clear()
-                playlist_info = ripper.get_playlist_info(url)
+                playlist_info = downloader.get_playlist_info(url)
 
                 if len(playlist_info[0]) > 0:
                     playlist = playlist_info[0]
@@ -369,7 +369,7 @@ class MainGui(BoxLayout):
 
             if "thumbnails" in self.cover_art_button.background_normal:
                 metadata[VorbisComments.COVER_ART.value] = self.cover_art_button.background_normal
-            ripper.download_selected_videos(url, selected_videos, metadata)
+            downloader.download_selected_videos(url, selected_videos, metadata)
         else:
             print("[Error] Invalid URL entered")
 
